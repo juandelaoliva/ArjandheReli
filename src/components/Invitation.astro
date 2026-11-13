@@ -20,7 +20,8 @@ interface Props {
 }
 
 const { lang } = Astro.props;
-const title = `${boda.novios.el} & ${boda.novios.ella}`;
+// Título de la pestaña y de la vista previa al compartir (WhatsApp, etc.). Igual en los tres idiomas.
+const title = `Ftesë Dasme ${boda.novios.el} & ${boda.novios.ella}`;
 const description = `${weddingDate(lang)} · ${boda.ciudad[lang]}`;
 ---
 
