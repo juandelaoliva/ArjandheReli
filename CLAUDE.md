@@ -61,6 +61,11 @@ Node 22 (`.nvmrc`). Astro 7 exige Node ≥ 22.12.
 - `npm run build` / `npm run preview`.
 - `npm run check`: tipos.
 
+## Publicación
+
+- Web: **https://dasmaarjanreliana.com** (repo `juandelaoliva/ArjandheReli`, GitHub Pages con Actions; el dominio sale del archivo `CNAME`).
+- Cada push a `main` despliega. El selector de pruebas solo existe en `npm run dev`.
+
 ## Desarrollo
 
 Todo en local por ahora. El workflow `.github/workflows/deploy.yml` ya está listo para cuando haya repo.
