@@ -185,3 +185,57 @@ html[data-style='relieve'] .hero .scroll-hint {
   display: none;
 }
 
+
+/* ---------- Escritorio: adornos más grandes y pegados al contenido, no a los bordes de la ventana ---------- */
+
+/* En móvil la portada no lleva guirnaldas laterales (no hay sitio). */
+html[data-style='relieve'] .hero .rel-decor.garland-left,
+html[data-style='relieve'] .hero .rel-decor.garland-right {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  html[data-style='relieve'] .hero {
+    --crown-w: min(70vw, 52rem);
+  }
+
+  html[data-style='relieve'] .hero .card {
+    width: min(100%, 36rem);
+  }
+
+  /* Guirnaldas de la portada, flanqueando el texto. */
+  html[data-style='relieve'] .hero .rel-decor.garland-left,
+  html[data-style='relieve'] .hero .rel-decor.garland-right {
+    display: block;
+    width: 15rem !important;
+    opacity: 0.85 !important;
+  }
+
+  html[data-style='relieve'] .hero .rel-decor.garland-left {
+    left: calc(50% - 18rem - 15rem) !important;
+  }
+
+  html[data-style='relieve'] .hero .rel-decor.garland-right {
+    right: calc(50% - 18rem - 15rem) !important;
+  }
+
+  /* Guirnaldas de las secciones: junto a la columna de contenido (34rem), más grandes. */
+  html[data-style='relieve'] .section .rel-decor.garland-left,
+  html[data-style='relieve'] .section .rel-decor.garland-right {
+    width: 14rem !important;
+    opacity: 0.8 !important;
+  }
+
+  html[data-style='relieve'] .section .rel-decor.garland-left {
+    left: calc(50% - var(--measure) / 2 - 14rem - 1.5rem) !important;
+  }
+
+  html[data-style='relieve'] .section .rel-decor.garland-right {
+    right: calc(50% - var(--measure) / 2 - 14rem - 1.5rem) !important;
+  }
+
+  /* Separadores un poco más anchos. */
+  html[data-style='relieve'] .title-block .rel-decor.divider {
+    width: 14rem;
+  }
+}
