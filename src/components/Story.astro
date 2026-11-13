@@ -1,0 +1,104 @@
+---
+// Nuestra historia: texto corto y una foto. La foto es src/assets/historia.webp (o .jpg/.png). Ya trae su propio marco de
+// yeso en relieve, así que se muestra tal cual: sin difuminado de bordes ni mancha de acuarela detrás.
+import Wash from './Wash.astro';
+import ReliefDecor from './ReliefDecor.astro';
+import Branch from './Branch.astro';
+import { boda } from '../data/boda';
+import { ui, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang];
+const photos = import.meta.glob<{ default: ImageMetadata }>('../assets/historia.{jpg,jpeg,png,webp,avif}', { eager: true });
+const photo = Object.values(photos)[0]?.default;
+---
+
+{
+  boda.historia.activa && (
+    <section class="section story" id="historia">
+      <Wash seed={14} tone={3} size="24rem" x="85%" y="25%" rot={40} opacity={0.85} />
+      <ReliefDecor kind="garland-left" size="11rem" y="70%" />
+      <Branch seed={3} size="13.6rem" x="6%" y="82%" rot={-12} opacity={0.9} />
+      <h2 class="visually-hidden">{t.ourStory}</h2>
+      <div class="wrap">
+        <figure class="photo">
+          {photo ? (
+            <div class="frame framed">
+              <img src={photo.src} width={photo.width} height={photo.height} alt={t.storyPhoto} loading="lazy" decoding="async" />
+            </div>
+          ) : (
+            <div class="frame">
+              <Wash seed={21} tone={2} size="115%" x="50%" y="50%" rot={8} opacity={0.95} />
+              <div class="placeholder" role="img" aria-label={t.storyPhoto}>
+                <span>{t.photoPlaceholder}</span>
+              </div>
+            </div>
+          )}
+        </figure>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .photo {
+    margin: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  .frame {
+    position: relative;
+    width: min(78%, 20rem);
+    aspect-ratio: 4 / 5;
+  }
+
+  .placeholder {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 0 1.5rem;
+    text-align: center;
+    background: color-mix(in srgb, var(--wash-1) 35%, var(--algodon));
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--step-1);
+    /* Bordes de acuarela: el hueco se funde con el papel. */
+    -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
+    mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
+  }
+
+  /* Foto apaisada: ocupa todo el ancho de la columna. */
+  .frame.framed {
+    width: 100%;
+    aspect-ratio: 1420 / 724; /* la foto es apaisada (casi 2:1) */
+  }
+
+  /* La foto va sin marco y solo se difuminan un poco sus bordes hacia el papel (~7 % por los lados, ~5 % arriba y abajo):
+     el centro, con las caras, queda nítido. */
+  .framed img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    --fade-x: 5%;
+    --fade-y: 9%;
+    -webkit-mask-image:
+      linear-gradient(to right, transparent 0, rgb(0 0 0 / 0.35) calc(var(--fade-x) * 0.45), #000 var(--fade-x), #000 calc(100% - var(--fade-x)), rgb(0 0 0 / 0.35) calc(100% - var(--fade-x) * 0.45), transparent 100%),
+      linear-gradient(to bottom, transparent 0, rgb(0 0 0 / 0.35) calc(var(--fade-y) * 0.45), #000 var(--fade-y), #000 calc(100% - var(--fade-y)), rgb(0 0 0 / 0.35) calc(100% - var(--fade-y) * 0.45), transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent 0, rgb(0 0 0 / 0.35) calc(var(--fade-x) * 0.45), #000 var(--fade-x), #000 calc(100% - var(--fade-x)), rgb(0 0 0 / 0.35) calc(100% - var(--fade-x) * 0.45), transparent 100%),
+      linear-gradient(to bottom, transparent 0, rgb(0 0 0 / 0.35) calc(var(--fade-y) * 0.45), #000 var(--fade-y), #000 calc(100% - var(--fade-y)), rgb(0 0 0 / 0.35) calc(100% - var(--fade-y) * 0.45), transparent 100%);
+    mask-composite: intersect;
+  }
+
+</style>

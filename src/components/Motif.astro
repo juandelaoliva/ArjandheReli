@@ -1,0 +1,21 @@
+---
+// Rombo bordado en punto de cruz (rojo y negro). Ocupa el ancho de su contenedor.
+import { diamond, stitchPaths } from '../lib/qendisje';
+
+interface Props {
+  radius?: number;
+}
+
+const { radius = 7 } = Astro.props;
+const n = 2 * radius + 1;
+---
+
+<svg viewBox={`0 0 ${n} ${n}`} aria-hidden="true" focusable="false" set:html={stitchPaths(diamond(radius))} />
+
+<style>
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+</style>

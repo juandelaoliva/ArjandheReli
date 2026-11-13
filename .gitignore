@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.astro/
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Material de origen en alta resolución (fotos, PNG, MP3 originales): pesa ~47 MB y no hace falta para publicar.
+originales/
+
+# Ajustes locales de Claude Code
+.claude/settings.local.json

@@ -1,0 +1,47 @@
+---
+import '@fontsource/playfair-display/latin-400.css';
+import '@fontsource/playfair-display/latin-ext-400.css';
+import '@fontsource/playfair-display/latin-400-italic.css';
+import '@fontsource/playfair-display/latin-ext-400-italic.css';
+import '@fontsource-variable/jost/index.css';
+import '@fontsource/pinyon-script/latin-400.css';
+import '@fontsource/pinyon-script/latin-ext-400.css';
+import '@fontsource/cormorant-garamond/latin-500.css';
+import '@fontsource/cormorant-garamond/latin-ext-500.css';
+import '@fontsource/cormorant-garamond/latin-500-italic.css';
+import '../styles/tokens.css';
+import '../styles/global.css';
+import '../styles/relieve.css';
+import { getAbsoluteLocaleUrl } from 'astro:i18n';
+import { langs, type Lang } from '../i18n/ui';
+import { textureVars } from '../lib/textures';
+
+interface Props {
+  lang: Lang;
+  title: string;
+  description: string;
+}
+
+const { lang, title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang} style={textureVars} data-style="relieve">
+  <head>
+    <meta charset="utf-8" />
+    <script is:inline>document.documentElement.classList.add('js');</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#fafaf7" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {langs.map((l) => <link rel="alternate" hreflang={l} href={getAbsoluteLocaleUrl(l)} />)}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content={lang} />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

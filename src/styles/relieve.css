@@ -1,0 +1,197 @@
+/* Estilo «relieve clásico»: invitación impresa en relieve sobre papel marfil.
+   Adornos barrocos de yeso arriba y abajo, flores y ramas en blanco sobre gris cálido, caligrafía dorada.
+   Se activa con html[data-style='relieve'] (selector de pruebas). */
+
+html[data-style='relieve'] {
+  --algodon: #ece8df;
+  --tinta: #4a3f2e;
+  --accent: #9a7b45;
+  --gold: #8c6e3a;
+  --gold-soft: #c9b283;
+  --wash-1: #f6f2ea;
+  --wash-2: #f8f4ec;
+  --wash-3: #e8dcc5;
+}
+
+/* Sin manchas de acuarela: el fondo es papel liso con adornos en relieve. */
+html[data-style='relieve'] .wash {
+  display: none;
+}
+
+/* Las flores, ramas y adornos dibujados por código son de los otros estilos: aquí van los relieves de yeso. */
+html[data-style='relieve'] .branch,
+html[data-style='relieve'] .flower,
+html[data-style='relieve'] .orn,
+html[data-style='relieve'] .hero .sep {
+  display: none;
+}
+
+html[data-style='relieve'] .rel-decor {
+  display: block;
+  position: absolute;
+  height: auto;
+  /* El yeso de las imágenes tira a rosa: se neutraliza hacia marfil. */
+  filter: saturate(0.55) sepia(0.12) brightness(1.02);
+}
+
+/* Marco de la portada: corona de yeso arriba y remate abajo.
+   Su ancho también depende de la altura visible (svh), así el marco entero cabe en pantallas bajas. */
+html[data-style='relieve'] .hero {
+  --crown-w: min(108vw, 38rem, 46svh);
+  --crown-h: calc(var(--crown-w) * 0.334);
+  padding: 0;
+}
+
+html[data-style='relieve'] .hero .rel-decor.top {
+  top: 2.2rem;
+  left: 50%;
+  width: var(--crown-w);
+  transform: translateX(-50%);
+  z-index: 0;
+}
+
+html[data-style='relieve'] .hero .rel-decor.bottom {
+  bottom: 0.4rem;
+  left: 50%;
+  width: var(--crown-w);
+  transform: translateX(-50%);
+  z-index: 0;
+}
+
+html[data-style='relieve'] .hero .frame,
+html[data-style='relieve'] .hero .corner {
+  display: none;
+}
+
+/* Guirnaldas laterales: de fondo, en los bordes de cada sección. */
+html[data-style='relieve'] .rel-decor.garland-left,
+html[data-style='relieve'] .rel-decor.garland-right {
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+/* Separadores */
+html[data-style='relieve'] .rel-decor.divider {
+  position: static;
+  width: min(15rem, 70%);
+  margin: 0 auto;
+}
+
+html[data-style='relieve'] .hero .rel-decor.divider {
+  margin: 0.4rem auto 0.2rem;
+}
+
+html[data-style='relieve'] .title-block .rel-decor.divider {
+  width: 11rem;
+  margin-top: -0.4rem;
+}
+
+/* Textos de la portada */
+html[data-style='relieve'] .hero .wc,
+html[data-style='relieve'] .hero .wc-i {
+  display: none;
+}
+
+html[data-style='relieve'] .hero .rel {
+  display: block;
+}
+
+html[data-style='relieve'] .hero .rel-i {
+  display: inline;
+}
+
+html[data-style='relieve'] .hero .card {
+  width: min(100%, 30rem);
+  min-height: 100svh;
+  height: 100%;
+  padding: calc(2.2rem + var(--crown-h) * 0.82) 1.25rem calc(1.4rem + var(--crown-h));
+}
+
+html[data-style='relieve'] .hero .rel-family,
+html[data-style='relieve'] .hero .rel-request {
+  font-family: var(--font-label);
+  font-weight: 500;
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+  line-height: 1.7;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+html[data-style='relieve'] .hero .rel-family {
+  max-width: 17rem;
+  margin: 0 auto;
+}
+
+html[data-style='relieve'] .hero .rel-request {
+  max-width: 19rem;
+  margin: 0 auto 1.2rem;
+}
+
+html[data-style='relieve'] .hero .names {
+  margin: 0.5rem 0 0.9rem;
+  font-size: clamp(3.4rem, 15vw, 5rem);
+  line-height: 1.05;
+  color: var(--gold);
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.6);
+}
+
+html[data-style='relieve'] .hero .names .n {
+  white-space: nowrap;
+}
+
+html[data-style='relieve'] .hero .names .amp {
+  margin: 0.05em 0;
+  font-family: var(--font-label);
+  font-style: italic;
+  font-size: 0.42em;
+  letter-spacing: 0.04em;
+}
+
+html[data-style='relieve'] .hero .date,
+html[data-style='relieve'] .hero .side,
+html[data-style='relieve'] .hero .when,
+html[data-style='relieve'] .hero .city {
+  font-family: var(--font-label);
+  font-weight: 500;
+  color: var(--gold);
+  border-color: var(--gold-soft);
+}
+
+html[data-style='relieve'] .hero .side {
+  font-size: 1.05rem;
+}
+
+html[data-style='relieve'] .hero .when,
+html[data-style='relieve'] .hero .city {
+  font-size: 0.95rem;
+}
+
+html[data-style='relieve'] .hero .day {
+  color: #8f7140;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.55);
+}
+
+html[data-style='relieve'] .hero .place {
+  font-family: var(--font-label);
+  font-weight: 500;
+  font-size: 1.3rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+/* La indicación de scroll se pisa con el adorno inferior: se oculta en este estilo. */
+html[data-style='relieve'] .hero .scroll-hint {
+  display: none;
+}
+
+/* Pantallas bajas (móviles con la barra del navegador): se aprietan los espacios de la portada para que
+   quepa entre las dos coronas sin tener que reducir demasiado las letras. */
+@media (max-height: 760px) {
+  html[data-style='relieve'] .hero .names { margin: 0.2rem 0 0.4rem; }
+  html[data-style='relieve'] .hero .rel-request { margin-bottom: 0.5rem; }
+  html[data-style='relieve'] .hero .rel-decor.divider { margin: 0.1rem auto 0; width: min(11rem, 55%); }
+  html[data-style='relieve'] .hero .place { font-size: 1.1rem; }
+  html[data-style='relieve'] .hero .date { padding: 0.2rem 0 0.35rem; }
+}

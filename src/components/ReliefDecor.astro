@@ -1,0 +1,52 @@
+---
+// Adornos de yeso en relieve (imágenes con transparencia en src/assets/relieve).
+// Solo se ven con html[data-style='relieve']; en los demás estilos no ocupan sitio.
+import top from '../assets/relieve/corona-superior.webp';
+import bottom from '../assets/relieve/corona-inferior.webp';
+import garlandLeft from '../assets/relieve/guirnalda-izquierda.webp';
+import garlandRight from '../assets/relieve/guirnalda-derecha.webp';
+import divider from '../assets/relieve/separador.webp';
+
+interface Props {
+  kind: 'top' | 'bottom' | 'garland-left' | 'garland-right' | 'divider';
+  /** Ancho (CSS). Las guirnaldas son verticales (alto = 3 × ancho). */
+  size?: string;
+  /** Posición vertical (% del contenedor) para las guirnaldas. */
+  y?: string;
+  /** Cuánto se sale del borde lateral (CSS). */
+  bleed?: string;
+  opacity?: number;
+}
+
+const { kind, size, y = '50%', bleed = '-3.5rem', opacity = 0.7 } = Astro.props;
+const img = { top, bottom, 'garland-left': garlandLeft, 'garland-right': garlandRight, divider }[kind];
+const style = [
+  size && `width:${size}`,
+  kind.startsWith('garland') && `top:${y}`,
+  kind === 'garland-left' && `left:${bleed}`,
+  kind === 'garland-right' && `right:${bleed}`,
+  kind.startsWith('garland') && `opacity:${opacity}`,
+]
+  .filter(Boolean)
+  .join(';');
+---
+
+<img
+  class={`rel-decor ${kind}`}
+  src={img.src}
+  width={img.width}
+  height={img.height}
+  alt=""
+  aria-hidden="true"
+  loading={kind === 'top' || kind === 'bottom' ? 'eager' : 'lazy'}
+  decoding="async"
+  style={style || undefined}
+/>
+
+<style>
+  .rel-decor {
+    display: none;
+    pointer-events: none;
+    user-select: none;
+  }
+</style>

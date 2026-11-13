@@ -1,0 +1,94 @@
+---
+import Wash from './Wash.astro';
+import ReliefDecor from './ReliefDecor.astro';
+import SectionTitle from './SectionTitle.astro';
+import Branch from './Branch.astro';
+import { boda } from '../data/boda';
+import { ui, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang];
+const families = t.familiesLine.replace('{a}', boda.novios.apellidoEl).replace('{b}', boda.novios.apellidoElla);
+---
+
+<footer class="section contact" id="contacto">
+  <Wash seed={81} tone={1} size="26rem" x="50%" y="70%" rot={5} opacity={0.75} />
+  <ReliefDecor kind="garland-left" size="11rem" y="55%" />
+  <Branch seed={5} size="11.9rem" x="12%" y="78%" rot={-10} opacity={0.9} />
+  <Branch seed={9} size="11.9rem" x="88%" y="78%" rot={10} flip opacity={0.9} />
+  <SectionTitle>{t.contact}</SectionTitle>
+  <div class="wrap">
+    <p class="lead">{t.contactIntro}</p>
+    <ul>
+      {
+        boda.contacto.map((c) => (
+          <li>
+            <a class="btn" href={c.whatsapp} target="_blank" rel="noopener">WhatsApp · {c.nombre}</a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <!-- Pie: despedida de las familias, con el estilo de la portada (dorado y caligrafía). -->
+  <div class="signoff">
+    <ReliefDecor kind="divider" />
+    <p class="love">{t.withLove}</p>
+    <p class="names" style={`--chars:${families.length}`}>{families}</p>
+  </div>
+</footer>
+
+<style>
+  .contact {
+    padding-bottom: 3.5rem;
+    text-align: center;
+  }
+
+  .lead {
+    margin-bottom: 1.5rem;
+  }
+
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Pie de página: franja con un filete dorado arriba y la despedida centrada. */
+  .signoff {
+    position: relative;
+    z-index: 1;
+    max-width: var(--measure);
+    margin: 2.5rem auto 0;
+    padding: 1.75rem 0 0;
+    border-top: 1px solid var(--gold-soft);
+  }
+
+  .love {
+    font-family: var(--font-label);
+    font-weight: 500;
+    font-size: 1rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--tinta);
+  }
+
+  /* Mismos nombres en caligrafía y dorado que la portada, siempre en UNA línea: el tamaño sigue al ancho de la pantalla. */
+  .names {
+    margin-top: 0.5rem;
+    font-family: var(--font-script);
+    /* el ancho de la letra caligráfica ≈ 0,42 em por carácter: así el texto cabe siempre en el ancho de la columna */
+    font-size: min(3.2rem, calc(min(100vw - 2rem, var(--measure)) / (var(--chars) * 0.42)));
+    line-height: 1.15;
+    white-space: nowrap;
+    color: var(--gold);
+  }
+</style>

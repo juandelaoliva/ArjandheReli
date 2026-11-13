@@ -1,0 +1,92 @@
+---
+// Cuándo y dónde: un único lugar (ceremonia y fiesta), con mapa, calendario y cómo llegar a Tirana.
+import Wash from './Wash.astro';
+import ReliefDecor from './ReliefDecor.astro';
+import SectionTitle from './SectionTitle.astro';
+import Branch from './Branch.astro';
+import { boda } from '../data/boda';
+import { weddingDate } from '../i18n/format';
+import { ui, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang];
+const { lugar } = boda;
+const base = import.meta.env.BASE_URL;
+const icsHref = `${base.endsWith('/') ? base : `${base}/`}boda.ics`;
+const google = new URL('https://calendar.google.com/calendar/render');
+google.searchParams.set('action', 'TEMPLATE');
+google.searchParams.set('text', `${boda.novios.el} & ${boda.novios.ella}`);
+google.searchParams.set('dates', '20270709T170000Z/20270710T010000Z');
+google.searchParams.set('location', `${lugar.nombre}, Tirana, Albania`);
+---
+
+<section class="section venue" id="cuando-y-donde">
+  <Wash seed={31} tone={1} size="28rem" x="8%" y="30%" rot={10} opacity={0.85} />
+  <ReliefDecor kind="garland-right" size="11rem" y="35%" />
+  <Wash seed={33} tone={3} size="20rem" x="95%" y="78%" rot={-20} opacity={0.8} />
+  <SectionTitle>{t.whenWhere}</SectionTitle>
+  <div class="wrap card">
+    <p class="when">
+      <time datetime={boda.fecha}>{weddingDate(lang)}</time>
+    </p>
+    <p class="time">{t.time} {lugar.hora}</p>
+    <h3 class="place">{lugar.nombre}</h3>
+    <p class="same">{t.ceremonyParty}</p>
+    <div class="actions">
+      <a class="btn btn-primary" href={lugar.mapa} target="_blank" rel="noopener">{t.getDirections}</a>
+      <a class="btn" href={icsHref} download>{t.addToCalendar}</a>
+      <a class="btn" href={google.toString()} target="_blank" rel="noopener">Google Calendar</a>
+    </div>
+  </div>
+
+  <Branch seed={7} size="11.9rem" x="93%" y="12%" rot={14} flip opacity={0.85} />
+</section>
+
+<style>
+  .card {
+    text-align: center;
+  }
+
+  .when {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-style: italic;
+  }
+
+  .when::first-letter {
+    text-transform: uppercase;
+  }
+
+  .time {
+    margin-top: 0.15rem;
+    letter-spacing: 0.1em;
+    font-size: var(--step--1);
+  }
+
+  .place {
+    margin-top: 1.25rem;
+    font-size: var(--step-2);
+  }
+
+
+  .same {
+    margin: 1.25rem auto 0;
+    max-width: 24rem;
+    font-style: italic;
+    font-family: var(--font-display);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+  }
+
+
+</style>

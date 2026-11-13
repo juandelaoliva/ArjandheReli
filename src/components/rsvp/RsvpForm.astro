@@ -1,0 +1,646 @@
+---
+// Formulario de confirmación multipaso. Lógica en ./rsvp.ts; textos en src/i18n/rsvp.ts.
+// Id de la sección: #rsvp. Sin autobús, canción, mensaje ni niños (ver CLAUDE.md).
+import Wash from '../Wash.astro';
+import ReliefDecor from '../ReliefDecor.astro';
+import Branch from '../Branch.astro';
+import Flower from '../Flower.astro';
+import { boda } from '../../data/boda';
+import { formatDate } from '../../i18n/format';
+import { rsvpText } from '../../i18n/rsvp';
+import { intlLocale, type Lang } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = rsvpText[lang];
+
+const config = {
+  t,
+  lang,
+  locale: intlLocale[lang],
+  timeZone: boda.zonaHoraria,
+  endpoint: import.meta.env.PUBLIC_RSVP_ENDPOINT ?? '',
+  dayMonth: formatDate(boda.fecha, lang, { day: 'numeric', month: 'long' }),
+  // Fechas del navegador: algunos navegadores no traen datos de albanés en Intl y formatearían en SU idioma (español).
+  // Por eso los nombres de los meses llegan ya calculados desde el servidor.
+  months: Array.from({ length: 12 }, (_, m) =>
+    new Intl.DateTimeFormat(intlLocale[lang], { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2027, m, 15))),
+  ),
+  dateFormat: lang === 'de' ? '{d}. {m} {y}' : '{d} {m} {y}',
+  contacts: boda.contacto.map((c) => ({ nombre: c.nombre, whatsapp: c.whatsapp })),
+};
+---
+
+<section id="rsvp" class="section rsvp" data-rsvp data-config={JSON.stringify(config)} aria-labelledby="rsvp-title">
+  <Wash seed={91} tone={2} size="30rem" x="8%" y="22%" rot={20} opacity={0.8} />
+  <ReliefDecor kind="garland-right" size="11rem" y="30%" />
+  <ReliefDecor kind="garland-left" size="11rem" y="85%" />
+  <Wash seed={93} tone={1} size="26rem" x="95%" y="75%" rot={-25} opacity={0.75} />
+  <Branch seed={13} size="13rem" x="3%" y="88%" rot={-8} opacity={0.9} />
+  <Branch seed={17} size="12rem" x="97%" y="14%" rot={12} flip opacity={0.85} />
+  <Flower seed={5} tone={3} size="5rem" x="88%" y="48%" rot={20} opacity={0.9} />
+  <div class="wrap">
+    <h2 id="rsvp-title" class="section-title">{t.title}</h2>
+    <p class="rsvp-intro">{t.intro.replace('{deadline}', formatDate(boda.fechaLimite, lang))}</p>
+
+    <div class="rsvp-card">
+      <!-- Ya respondió desde este móvil -->
+      <div class="rsvp-already" data-already hidden>
+        <p data-already-text></p>
+        <button type="button" class="btn rsvp-change" data-change>{t.changeReply}</button>
+      </div>
+
+      <!-- Confirmación final -->
+      <div class="rsvp-done" data-done hidden>
+        <svg class="rsvp-stamp" viewBox="0 0 80 80" aria-hidden="true" focusable="false">
+          <circle class="stamp-disc" cx="40" cy="40" r="34"></circle>
+          <circle class="stamp-ring" cx="40" cy="40" r="28" fill="none"></circle>
+          <path class="stamp-check" d="M26 41 l10 10 l19 -22" fill="none" pathLength="30"></path>
+        </svg>
+        <p class="rsvp-done-text" data-done-text tabindex="-1" role="status"></p>
+        <button type="button" class="btn rsvp-change" data-change>{t.changeReply}</button>
+      </div>
+
+      <form class="rsvp-form" data-form novalidate autocomplete="on">
+        <!-- Honeypot: invisible para personas, tentador para bots -->
+        <div class="rsvp-hp" aria-hidden="true">
+          <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+        </div>
+
+        <div class="rsvp-head">
+          <p class="rsvp-step" data-step-label aria-live="polite"></p>
+          <div class="rsvp-bar" aria-hidden="true"><span data-bar></span></div>
+        </div>
+
+        <div class="rsvp-steps">
+          <!-- 1. Tú -->
+          <div class="rsvp-panel" data-step="s1" role="group" aria-labelledby="rsvp-h-s1">
+            <h3 id="rsvp-h-s1" class="rsvp-h" data-step-title tabindex="-1">{t.s1Title}</h3>
+
+            <div class="field">
+              <label for="rsvp-name">{t.nameLabel}</label>
+              <input id="rsvp-name" name="nombre" type="text" autocomplete="name" data-field="name" />
+            </div>
+
+            <div class="field">
+              <label for="rsvp-contact">{t.contactLabel}</label>
+              <input
+                id="rsvp-contact"
+                name="contacto"
+                type="tel"
+                inputmode="tel"
+                autocomplete="tel"
+                spellcheck="false"
+                data-field="contacto"
+              />
+            </div>
+
+            <fieldset class="field choices" data-field="attending">
+              <legend>{t.attendingLabel}</legend>
+              <label class="choice">
+                <input type="radio" name="attending" value="yes" />
+                <span>{t.yes}</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="attending" value="no" />
+                <span>{t.no}</span>
+              </label>
+            </fieldset>
+          </div>
+
+          <!-- 2. Quién viene contigo -->
+          <div class="rsvp-panel" data-step="s2" role="group" aria-labelledby="rsvp-h-s2" hidden>
+            <h3 id="rsvp-h-s2" class="rsvp-h" data-step-title tabindex="-1">{t.s2Title}</h3>
+
+            <fieldset class="field choices" data-field="guest">
+              <legend>{t.guestQuestion}</legend>
+              <label class="choice">
+                <input type="radio" name="guest" value="yes" />
+                <span>{t.guestYes}</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="guest" value="no" />
+                <span>{t.guestNo}</span>
+              </label>
+            </fieldset>
+
+            <div class="rsvp-adult-names" data-adult-names></div>
+            <button type="button" class="link rsvp-add" data-add-guest hidden>+ {t.addGuest}</button>
+          </div>
+
+          <!-- Resumen -->
+          <div class="rsvp-panel" data-step="sum" role="group" aria-labelledby="rsvp-h-sum" hidden>
+            <h3 id="rsvp-h-sum" class="rsvp-h" data-step-title tabindex="-1">{t.summaryTitle}</h3>
+            <div class="rsvp-summary" data-summary></div>
+          </div>
+        </div>
+
+        <p class="rsvp-error" data-error role="alert"></p>
+
+        <div class="rsvp-actions">
+          <button type="button" class="rsvp-back" data-back>{t.back}</button>
+          <button type="submit" class="rsvp-next" data-next>{t.next}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+  import './rsvp';
+</script>
+
+<style is:global>
+  .rsvp {
+    --rsvp-accent: var(--accent, var(--lacre));
+    --rsvp-line: color-mix(in srgb, var(--tinta) 32%, var(--niebla));
+  }
+
+  .rsvp [hidden] {
+    display: none !important;
+  }
+
+  .rsvp .rsvp-intro {
+    position: relative;
+    z-index: 1;
+    max-width: 26rem;
+    margin: -1rem auto 2rem;
+    text-align: center;
+  }
+
+  /* La tarjeta es translúcida: deja ver la acuarela que haya detrás. */
+  .rsvp .rsvp-card {
+    position: relative;
+    z-index: 1;
+    padding: 1.5rem 1.25rem 1.25rem;
+    border: 1px solid color-mix(in srgb, var(--niebla) 85%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--algodon) 74%, transparent);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 14px 32px -18px color-mix(in srgb, var(--tinta) 38%, transparent);
+    text-align: left;
+  }
+
+  .rsvp .rsvp-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  /* Progreso */
+  .rsvp .rsvp-head {
+    margin-bottom: 1.25rem;
+  }
+
+  .rsvp .rsvp-step {
+    margin: 0 0 0.5rem;
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--tinta) 75%, transparent);
+  }
+
+  .rsvp .rsvp-bar {
+    height: 3px;
+    border-radius: 3px;
+    background: var(--niebla);
+    overflow: hidden;
+  }
+
+  .rsvp .rsvp-bar span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--rsvp-accent);
+    transform-origin: left center;
+    transform: scaleX(var(--progress, 0.25));
+    transition: transform 0.35s ease;
+  }
+
+  /* Pasos */
+  .rsvp .rsvp-h {
+    margin: 0 0 1.1rem;
+    font-size: var(--step-2);
+    font-weight: 400;
+    font-optical-sizing: auto;
+    outline-offset: 6px;
+  }
+
+  .rsvp .field {
+    display: block;
+    margin: 0 0 1.15rem;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .rsvp .field > label,
+  .rsvp .guest-row label,
+  .rsvp legend,
+  .rsvp .person legend {
+    display: block;
+    padding: 0;
+    margin: 0 0 0.35rem;
+    font-size: var(--step--1);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  .rsvp .help {
+    margin: 0.35rem 0 0;
+    font-size: var(--step--1);
+    line-height: 1.4;
+    color: color-mix(in srgb, var(--tinta) 68%, var(--algodon));
+  }
+
+  .rsvp input[type='text'],
+  .rsvp input[type='tel'] {
+    display: block;
+    width: 100%;
+    min-height: var(--tap);
+    padding: 0 0.85rem;
+    border: 1px solid var(--rsvp-line);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--algodon) 88%, transparent);
+    color: var(--tinta);
+    font: inherit;
+    font-size: 1rem; /* ≥16 px: Safari en iPhone no hace zoom al enfocar */
+  }
+
+  .rsvp input[aria-invalid='true'] {
+    border-color: var(--lacre);
+    box-shadow: 0 0 0 1px var(--lacre);
+  }
+
+  /* Opciones tipo ficha (radio oculto, no display:none para que siga siendo accesible) */
+  .rsvp .choices .choice {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .rsvp .choice input,
+  .rsvp .segmented input,
+  .rsvp .pills input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+  }
+
+  .rsvp .choice span {
+    display: flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--rsvp-line);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--algodon) 88%, transparent);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .rsvp .choice input:checked + span,
+  .rsvp .segmented input:checked + span,
+  .rsvp .pills input:checked + span {
+    border-color: var(--rsvp-accent);
+    background: var(--rsvp-accent);
+    color: #fff;
+  }
+
+  .rsvp .choice input:focus-visible + span,
+  .rsvp .segmented input:focus-visible + span,
+  .rsvp .pills input:focus-visible + span {
+    outline: 2px solid var(--rsvp-accent);
+    outline-offset: 3px;
+  }
+
+  /* Selector 0–4 */
+  .rsvp .segmented {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .rsvp .segmented label {
+    position: relative;
+    display: block;
+  }
+
+  .rsvp .segmented span {
+    display: grid;
+    place-items: center;
+    min-height: var(--tap);
+    border: 1px solid var(--rsvp-line);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--algodon) 88%, transparent);
+    font-size: var(--step-1);
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .rsvp .rsvp-adult-names {
+    margin-top: 1.25rem;
+  }
+
+  /* Comida: una ficha por persona */
+  .rsvp .person {
+    margin: 0 0 1.1rem;
+    padding: 0 0 1.1rem;
+    border: 0;
+    border-bottom: 1px solid var(--niebla);
+    min-width: 0;
+  }
+
+  .rsvp .person:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .rsvp .person-name {
+    margin: 0 0 0.6rem;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: 1.2;
+  }
+
+  .rsvp .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .rsvp .pills label {
+    position: relative;
+  }
+
+  .rsvp .pills span {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0 1rem;
+    border: 1px solid var(--rsvp-line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--algodon) 88%, transparent);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  /* Resumen */
+  .rsvp .sum-block {
+    margin: 0 0 1rem;
+    padding: 0 0 1rem;
+    border-bottom: 1px solid var(--niebla);
+  }
+
+  .rsvp .sum-block:last-child {
+    border-bottom: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .rsvp .sum-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .rsvp .sum-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 400;
+  }
+
+  .rsvp .rsvp-add {
+    margin-top: 0.1rem;
+    font-size: var(--step--1);
+  }
+
+  .rsvp .guest-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: end;
+  }
+
+  .rsvp .guest-remove {
+    width: var(--tap);
+    height: var(--tap);
+    border: 1px solid var(--rsvp-line);
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .rsvp .link {
+    min-height: var(--tap);
+    padding: 0 0.25rem;
+    border: 0;
+    background: none;
+    color: var(--rsvp-accent);
+    font: inherit;
+    font-size: var(--step--1);
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+    cursor: pointer;
+  }
+
+  .rsvp .sum-lines {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .rsvp .sum-lines li + li {
+    margin-top: 0.2rem;
+  }
+
+  .rsvp .sum-muted {
+    color: color-mix(in srgb, var(--tinta) 72%, transparent);
+  }
+
+  /* Error y botones */
+  .rsvp .rsvp-error {
+    min-height: 1.6em;
+    margin: 0.5rem 0 0.25rem;
+    color: var(--lacre);
+    font-size: 0.95rem;
+  }
+
+  .rsvp .rsvp-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .rsvp .rsvp-back,
+  .rsvp .rsvp-next {
+    min-height: var(--tap);
+    padding: 0 1.4rem;
+    border-radius: 999px;
+    font: inherit;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.25s ease, color 0.25s ease, opacity 0.2s ease;
+  }
+
+  .rsvp .rsvp-back {
+    border: 1px solid var(--rsvp-line);
+    background: transparent;
+    color: var(--tinta);
+  }
+
+  .rsvp .rsvp-back:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .rsvp .rsvp-next {
+    flex: 1;
+    max-width: 16rem;
+    margin-left: auto;
+    border: 1px solid var(--rsvp-accent);
+    background: var(--rsvp-accent);
+    color: #fff;
+  }
+
+  .rsvp .rsvp-back:hover:not(:disabled) {
+    border-color: var(--rsvp-accent);
+    background: var(--rsvp-accent);
+    color: #fff;
+  }
+
+  .rsvp .rsvp-next:hover:not(:disabled) {
+    background: var(--tinta);
+    border-color: var(--tinta);
+  }
+
+  .rsvp .rsvp-next:disabled {
+    opacity: 0.65;
+    cursor: progress;
+  }
+
+  /* Confirmación: el lacre «sella» la tarjeta */
+  .rsvp .rsvp-done,
+  .rsvp .rsvp-already {
+    display: grid;
+    justify-items: center;
+    gap: 1rem;
+    padding: 1rem 0 0.5rem;
+    text-align: center;
+  }
+
+  .rsvp .rsvp-stamp {
+    width: 5.5rem;
+    height: 5.5rem;
+    overflow: visible;
+  }
+
+  .rsvp .stamp-disc {
+    fill: var(--rsvp-accent);
+    filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--tinta) 35%, transparent));
+  }
+
+  .rsvp .stamp-ring {
+    stroke: color-mix(in srgb, var(--algodon) 45%, transparent);
+    stroke-width: 1.5;
+  }
+
+  .rsvp .stamp-check {
+    stroke: var(--algodon);
+    stroke-width: 4.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 30;
+    stroke-dashoffset: 0;
+  }
+
+  .rsvp .rsvp-done-text {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    line-height: 1.2;
+    outline: none;
+  }
+
+  .rsvp .rsvp-done.is-in .rsvp-stamp {
+    animation: rsvp-stamp 0.7s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+  }
+
+  .rsvp .rsvp-done.is-in .stamp-check {
+    animation: rsvp-check 0.45s ease-out 0.4s both;
+  }
+
+  .rsvp .rsvp-done.is-in .rsvp-done-text {
+    animation: rsvp-rise 0.5s ease-out 0.55s both;
+  }
+
+  @keyframes rsvp-stamp {
+    0% {
+      opacity: 0;
+      transform: scale(1.9) rotate(-14deg);
+    }
+    55% {
+      opacity: 1;
+      transform: scale(0.93) rotate(2deg);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0);
+    }
+  }
+
+  @keyframes rsvp-check {
+    from {
+      stroke-dashoffset: 30;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes rsvp-rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .rsvp .rsvp-change {
+    margin-top: 1rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rsvp .rsvp-bar span,
+    .rsvp .choice span,
+    .rsvp .segmented span,
+    .rsvp .pills span {
+      transition: none;
+    }
+
+    .rsvp .rsvp-done.is-in .rsvp-stamp,
+    .rsvp .rsvp-done.is-in .stamp-check,
+    .rsvp .rsvp-done.is-in .rsvp-done-text {
+      animation: none;
+    }
+  }
+</style>

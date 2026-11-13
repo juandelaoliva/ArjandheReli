@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3A5A80">
+<meta name="robots" content="noindex">
+<title>Reliana y Arjan: prototipo del sobre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Jost:wght@300..500&display=swap">
+<style>
+  :root {
+    --envelope: #3A5A80;
+    --paper: #F8F7F3;
+    --ink: #1E2B45;
+    --ink-soft: #4A5468;
+    --on-envelope: rgba(255, 255, 255, .86);
+    --chrome-bg: rgba(16, 20, 28, .46);
+    --chrome-fg: #FFFFFF;
+    --chrome-btn: rgba(255, 255, 255, .16);
+    --chrome-ring: rgba(255, 255, 255, .92);
+    --seal-size: clamp(92px, 26vw, 120px);
+    --serif: "Bodoni Moda", "Bodoni 72", Didot, "Bodoni MT", "Times New Roman", serif;
+    --sans: "Jost", "Futura", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    color-scheme: light;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* La invitación es papel: en modo oscuro solo se atenúa un poco el papel y se refuerza la barra de controles. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #F1EFEA;
+      --ink: #1E2B45;
+      --ink-soft: #4A5468;
+      --chrome-bg: rgba(8, 10, 14, .62);
+      --chrome-fg: #F4F4F4;
+      --chrome-btn: rgba(255, 255, 255, .14);
+      --chrome-ring: rgba(255, 255, 255, .9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #F1EFEA;
+    --ink: #1E2B45;
+    --ink-soft: #4A5468;
+    --chrome-bg: rgba(8, 10, 14, .62);
+    --chrome-fg: #F4F4F4;
+    --chrome-btn: rgba(255, 255, 255, .14);
+    --chrome-ring: rgba(255, 255, 255, .9);
+  }
+
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: var(--paper); }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .stage { position: fixed; inset: 0; overflow: hidden; background: var(--paper); }
+
+  /* Interior del sobre: la invitación */
+  .interior {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    background: var(--paper);
+  }
+  .interior::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: var(--noise); background-size: 64px 64px;
+    pointer-events: none;
+  }
+  .vignette {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(120% 85% at 50% 48%, transparent 38%, rgba(48, 40, 30, .22) 100%),
+      linear-gradient(to bottom, rgba(48, 40, 30, .12), transparent 24%);
+  }
+  .content {
+    position: relative;
+    max-width: 34rem;
+    padding: 0 1.75rem;
+    text-align: center;
+  }
+  .pre {
+    margin: 0 0 1.75rem;
+    font-weight: 300; font-size: 1.0625rem; line-height: 1.4; letter-spacing: .04em;
+    color: var(--ink-soft);
+  }
+  .names {
+    margin: 0;
+    font-family: var(--serif); font-weight: 400; font-optical-sizing: auto;
+    font-size: clamp(3.5rem, 17vw, 6.75rem); line-height: .94; letter-spacing: -.01em;
+    color: var(--ink);
+  }
+  .names span { display: block; }
+  .names .amp { font-style: italic; font-size: .46em; line-height: 1; margin: .32em 0 .2em; }
+  .date {
+    margin: 2.25rem 0 .35rem;
+    font-weight: 400; font-size: 1.0625rem; line-height: 1.5; letter-spacing: .01em;
+  }
+  .place { margin: 0; font-weight: 300; font-size: 1rem; line-height: 1.5; color: var(--ink-soft); }
+
+  /* Solapas */
+  .flaps {
+    position: absolute; inset: 0;
+    perspective-origin: 50% 50%;
+    transform-origin: 50% 50%;
+    pointer-events: none;
+  }
+  .flaps::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(135% 100% at 50% 50%, transparent 48%, var(--flap-vignette, rgba(0, 0, 0, .26)) 100%);
+  }
+  .flaps:empty { background: var(--envelope); }
+  .band { position: absolute; transform-style: preserve-3d; will-change: transform; }
+  /* Cada banda se compone en una sola capa plana y, por si un navegador no la aplana (Safari en iPhone),
+     las sombras van una fracción de píxel por delante del papel para que nunca queden ordenadas detrás. */
+  .face { position: absolute; inset: 0; transform: translateZ(0); }
+  .face canvas { position: absolute; left: 0; top: 0; display: block; }
+  .shade { opacity: 0; }
+  .shade--light { transform: translateZ(.3px); }
+  .shade--dark { transform: translateZ(.6px); }
+
+  /* Lacre */
+  .seal {
+    position: absolute; left: 50%; top: 50%;
+    width: var(--seal-size); height: var(--seal-size);
+    margin: calc(var(--seal-size) / -2) 0 0 calc(var(--seal-size) / -2);
+    padding: 0; border: 0; border-radius: 50%; background: none;
+    cursor: pointer; touch-action: manipulation;
+    filter: drop-shadow(0 1.5px 1.5px rgba(0, 0, 0, .34)) drop-shadow(0 7px 12px rgba(0, 0, 0, .24));
+  }
+  .seal svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+  .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+  .seal:focus-visible { outline: 2px solid var(--on-envelope); outline-offset: 6px; }
+  .hint {
+    position: absolute; left: 0; right: 0;
+    top: calc(50% + var(--seal-size) / 2 + 1.25rem);
+    margin: 0; padding: 0 1.5rem;
+    text-align: center; pointer-events: none;
+    font-weight: 300; font-size: 1rem; letter-spacing: .03em;
+    color: var(--on-envelope);
+  }
+  [hidden] { display: none !important; }
+
+  /* Controles del prototipo */
+  .controls {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    display: flex; justify-content: center;
+    padding: 0 .75rem calc(env(safe-area-inset-bottom, 0px) + 14px);
+    pointer-events: none;
+  }
+  .pill {
+    display: flex; align-items: center; gap: .125rem;
+    padding: .25rem; border-radius: 999px;
+    background: var(--chrome-bg); color: var(--chrome-fg);
+    pointer-events: auto;
+  }
+  .swatch {
+    position: relative; width: 40px; height: 44px;
+    padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  }
+  .swatch::before {
+    content: ""; position: absolute; inset: 10px; border-radius: 50%;
+    background: var(--c);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35);
+  }
+  .swatch[aria-pressed="true"]::before { outline: 2px solid var(--chrome-ring); outline-offset: 3px; }
+  .swatch:focus-visible { outline: 2px solid var(--chrome-ring); outline-offset: -2px; }
+  @media (max-width: 379px) {
+    .swatch { width: 34px; }
+    .swatch::before { inset: 9px 5px; }
+    .close { padding: 0 .75rem; }
+  }
+  .close {
+    height: 44px; margin-left: .375rem; padding: 0 .9rem;
+    border: 0; border-radius: 999px;
+    background: var(--chrome-btn); color: var(--chrome-fg);
+    font: 400 .9375rem/1 var(--sans); letter-spacing: .01em;
+    cursor: pointer;
+  }
+  .close:disabled { opacity: .45; cursor: default; }
+  .close:focus-visible { outline: 2px solid var(--chrome-ring); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="wax-dome" cx="40%" cy="34%" r="74%">
+      <stop offset="0" stop-color="#B35767"/>
+      <stop offset=".42" stop-color="#83323F"/>
+      <stop offset=".82" stop-color="#5F2230"/>
+      <stop offset="1" stop-color="#481722"/>
+    </radialGradient>
+    <linearGradient id="wax-bevel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6C3CA" stop-opacity=".6"/>
+      <stop offset=".42" stop-color="#F6C3CA" stop-opacity="0"/>
+      <stop offset=".58" stop-color="#2A0A12" stop-opacity="0"/>
+      <stop offset="1" stop-color="#2A0A12" stop-opacity=".65"/>
+    </linearGradient>
+    <linearGradient id="rim-out" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#CB7383"/>
+      <stop offset=".5" stop-color="#83323F"/>
+      <stop offset="1" stop-color="#3E121B"/>
+    </linearGradient>
+    <linearGradient id="rim-in" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3A1019"/>
+      <stop offset=".5" stop-color="#762C38"/>
+      <stop offset="1" stop-color="#BE6574"/>
+    </linearGradient>
+    <radialGradient id="wax-floor" cx="58%" cy="62%" r="72%">
+      <stop offset="0" stop-color="#7E313E"/>
+      <stop offset="1" stop-color="#5A1D29"/>
+    </radialGradient>
+    <linearGradient id="wax-sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#FFE9EC" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blur-06" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation=".6"/></filter>
+    <filter id="blur-12" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter>
+    <filter id="blur-20" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
+    <filter id="wax-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="5" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1.6 0 0 0 -.8"/>
+    </filter>
+    <clipPath id="seal-clip"><path class="seal-blob-shape"/></clipPath>
+    <clipPath id="floor-clip"><circle r="31.2"/></clipPath>
+    <g id="seal-motif">
+      <path class="wreath-leaves" fill="currentColor"/>
+      <path class="wreath-stems" fill="none" stroke="currentColor" stroke-width=".75" stroke-linecap="round"/>
+      <text x="0" y="0" text-anchor="middle" dominant-baseline="central" font-family="'Bodoni Moda', 'Bodoni 72', Didot, serif" font-size="15.5" fill="currentColor">R<tspan font-style="italic" font-size="11" dx="1.4">&amp;</tspan><tspan dx="1.4">A</tspan></text>
+    </g>
+    <g id="seal-art">
+      <path class="seal-blob-shape" fill="url(#wax-dome)"/>
+      <path class="seal-blob-shape" fill="none" stroke="url(#wax-bevel)" stroke-width="3.4" clip-path="url(#seal-clip)" filter="url(#blur-06)"/>
+      <ellipse cx="-29" cy="-27" rx="8" ry="3.4" transform="rotate(-46 -29 -27)" fill="#FFE6EA" opacity=".4" filter="url(#blur-20)"/>
+      <circle cx="1" cy="1.4" r="38.2" fill="none" stroke="#2A0911" stroke-opacity=".42" stroke-width="2.6" filter="url(#blur-12)"/>
+      <circle r="35.6" fill="none" stroke="url(#rim-out)" stroke-width="3.2"/>
+      <circle r="32.5" fill="none" stroke="url(#rim-in)" stroke-width="3"/>
+      <circle r="31.1" fill="url(#wax-floor)"/>
+      <g clip-path="url(#floor-clip)">
+        <circle cx="1.7" cy="2.2" r="31.6" fill="none" stroke="#22070D" stroke-opacity=".6" stroke-width="5" filter="url(#blur-12)"/>
+        <use href="#seal-motif" transform="translate(.5 .7)" style="color:#2B0B13" opacity=".7"/>
+        <use href="#seal-motif" transform="translate(-.45 -.55)" style="color:#D88998" opacity=".7"/>
+        <use href="#seal-motif" style="color:#7D303D"/>
+      </g>
+      <path d="M-33.36 -12.14 A35.5 35.5 0 0 1 -15 -32.17" fill="none" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="1.3" stroke-linecap="round" filter="url(#blur-06)"/>
+      <rect x="-56" y="-56" width="112" height="112" fill="#000" filter="url(#wax-grain)" clip-path="url(#seal-clip)" opacity=".2"/>
+    </g>
+  </defs>
+</svg>
+<main class="stage">
+  <section class="interior" aria-label="Invitación">
+    <div class="vignette"></div>
+    <div class="content">
+      <p class="pre">Nos casamos</p>
+      <h1 class="names"><span>Reliana</span><span class="amp">&amp;</span><span>Arjan</span></h1>
+      <p class="date">Sábado, 18 de septiembre de 2027</p>
+      <p class="place">Villanueva del Río</p>
+    </div>
+  </section>
+
+  <div class="flaps" aria-hidden="true"></div>
+
+  <button class="seal" type="button" aria-label="Abrir invitación">
+    <svg class="seal-full" viewBox="-56 -56 112 112" aria-hidden="true">
+      <use href="#seal-art"/>
+      <g clip-path="url(#seal-clip)">
+        <g transform="rotate(24)"><rect class="sheen" x="-112" y="-90" width="30" height="180" fill="url(#wax-sheen)"/></g>
+      </g>
+    </svg>
+  </button>
+  <p class="hint">Toca el sello para abrir</p>
+</main>
+
+<div class="controls">
+  <div class="pill" role="group" aria-label="Controles del prototipo">
+    <button class="swatch" type="button" style="--c:#3A5A80" data-color="#3A5A80" aria-label="Sobre azul postal" aria-pressed="true"></button>
+    <button class="swatch" type="button" style="--c:#24324F" data-color="#24324F" aria-label="Sobre azul noche" aria-pressed="false"></button>
+    <button class="swatch" type="button" style="--c:#56603F" data-color="#56603F" aria-label="Sobre verde oliva" aria-pressed="false"></button>
+    <button class="swatch" type="button" style="--c:#7A6A5C" data-color="#7A6A5C" aria-label="Sobre visón" aria-pressed="false"></button>
+    <button class="swatch" type="button" style="--c:#F0E8DA" data-color="#F0E8DA" data-ink="rgba(52, 40, 30, .78)" aria-label="Sobre beige claro" aria-pressed="false"></button>
+    <button class="close" type="button" disabled>Cerrar el sobre</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const stage = document.querySelector('.stage');
+  const flapsEl = document.querySelector('.flaps');
+  const seal = document.querySelector('.seal');
+  const sheen = seal.querySelector('.sheen');
+  const hint = document.querySelector('.hint');
+  const interior = document.querySelector('.interior');
+  const vignette = document.querySelector('.vignette');
+  const closeBtn = document.querySelector('.close');
+  const swatches = [...document.querySelectorAll('.swatch')];
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* ---------- Utilidades ---------- */
+  const rng = (seed) => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const pt = (p) => `${r2(p[0])} ${r2(p[1])}`;
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+
+  /* Grano de papel, generado una vez */
+  const NOISE = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(128, 128);
+    const r = rng(7);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = r() > 0.5 ? 255 : 0;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = Math.floor(r() * 20);
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL('image/png');
+  })();
+  root.style.setProperty('--noise', `url("${NOISE}")`);
+
+  /* Lacre: borde irregular de cera */
+  (() => {
+    const N = 72, pts = [];
+    const bumps = [[0.55, 3.2, 0.22], [2.45, 2.4, 0.3], [4.35, 3.8, 0.18], [5.4, 1.6, 0.25]];
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      let rad = 47.5 + 1.3 * Math.sin(3 * a + 0.4) + 0.9 * Math.sin(7 * a + 1.3) + 0.45 * Math.sin(13 * a + 2.1);
+      for (const [c, amp, w] of bumps) {
+        const d = Math.atan2(Math.sin(a - c), Math.cos(a - c));
+        rad += amp * Math.exp(-(d * d) / (2 * w * w));
+      }
+      pts.push([Math.cos(a) * rad, Math.sin(a) * rad]);
+    }
+    let d = `M${pt(pts[0])}`;
+    for (let i = 0; i < N; i++) {
+      const p0 = pts[(i - 1 + N) % N], p1 = pts[i], p2 = pts[(i + 1) % N], p3 = pts[(i + 2) % N];
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+      const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      d += ` C${pt(c1)} ${pt(c2)} ${pt(p2)}`;
+    }
+    document.querySelectorAll('.seal-blob-shape').forEach((el) => el.setAttribute('d', `${d} Z`));
+  })();
+
+  /* Lacre: corona de olivo alrededor del monograma */
+  (() => {
+    const R = 24.4, N = 7, rad = Math.PI / 180, spread = 38 * rad;
+    let leaves = '', stems = '';
+    const leaf = (b, dir, L) => {
+      const n = [-dir[1], dir[0]], w = L * 0.36;
+      const tip = [b[0] + dir[0] * L, b[1] + dir[1] * L];
+      const mid = [b[0] + dir[0] * L * 0.5, b[1] + dir[1] * L * 0.5];
+      return `M${pt(b)} Q${pt([mid[0] + n[0] * w, mid[1] + n[1] * w])} ${pt(tip)} Q${pt([mid[0] - n[0] * w, mid[1] - n[1] * w])} ${pt(b)} Z`;
+    };
+    for (const s of [1, -1]) {
+      const P = (a) => [s * R * Math.cos(a * rad), R * Math.sin(a * rad)];
+      const a0 = 82, a1 = 234;
+      stems += `M${pt(P(a0))} A${R} ${R} 0 0 ${s === 1 ? 1 : 0} ${pt(P(a1))} `;
+      for (let i = 0; i < N; i++) {
+        const a = a0 + 22 + i * ((a1 - a0 - 26) / (N - 1));
+        const p = P(a);
+        const t = [-s * Math.sin(a * rad), Math.cos(a * rad)];
+        const out = [s * Math.cos(a * rad), Math.sin(a * rad)];
+        const L = 6.3 * (1 - i * 0.05);
+        for (const k of [1, -1]) {
+          const dir = [t[0] * Math.cos(spread) + out[0] * k * Math.sin(spread), t[1] * Math.cos(spread) + out[1] * k * Math.sin(spread)];
+          const len = k === 1 ? L : L * 0.82;
+          leaves += leaf([p[0] + dir[0] * 0.4, p[1] + dir[1] * 0.4], dir, len);
+        }
+      }
+      const end = P(a1), t1 = [-s * Math.sin(a1 * rad), Math.cos(a1 * rad)];
+      leaves += leaf(end, t1, 5.2);
+    }
+    document.querySelector('.wreath-leaves').setAttribute('d', leaves);
+    document.querySelector('.wreath-stems').setAttribute('d', stems.trim());
+  })();
+
+  /* Triángulo con la punta redondeada */
+  function flapPaths(A, T, B, r) {
+    const p1 = lerp(T, A, r / dist(T, A));
+    const p2 = lerp(T, B, r / dist(T, B));
+    const open = `M${pt(A)} L${pt(p1)} Q${pt(T)} ${pt(p2)} L${pt(B)}`;
+    return { open, closed: `${open} Z` };
+  }
+
+  /* Relieve: ramas de olivo con flores y capullos */
+  function branch(spec) {
+    const { P0, P1, P2, leaf: L0, count, from = 0.07, to = 0.93, spread = 36, unit,
+            berries = [], flowers = [], buds = [], tipLeaf = true, X = (q) => q } = spec;
+    const bez = (t) => { const u = 1 - t; return [u * u * P0[0] + 2 * u * t * P1[0] + t * t * P2[0], u * u * P0[1] + 2 * u * t * P1[1] + t * t * P2[1]]; };
+    const der = (t) => { const u = 1 - t; const d = [2 * u * (P1[0] - P0[0]) + 2 * t * (P2[0] - P1[0]), 2 * u * (P1[1] - P0[1]) + 2 * t * (P2[1] - P1[1])]; const l = Math.hypot(d[0], d[1]); return [d[0] / l, d[1] / l]; };
+    const lens = (base, dir, L, wf) => {
+      const n = [-dir[1], dir[0]], w = L * wf;
+      const b = [base[0] + dir[0] * L * 0.05, base[1] + dir[1] * L * 0.05];
+      const tip = [base[0] + dir[0] * L, base[1] + dir[1] * L];
+      const mid = [base[0] + dir[0] * L * 0.5, base[1] + dir[1] * L * 0.5];
+      const c1 = [mid[0] + n[0] * w, mid[1] + n[1] * w], c2 = [mid[0] - n[0] * w, mid[1] - n[1] * w];
+      return `M${pt(X(b))} Q${pt(X(c1))} ${pt(X(tip))} Q${pt(X(c2))} ${pt(X(b))} Z`;
+    };
+    const dot = (c, rx, ry = rx) => {
+      const q = X(c);
+      return `M${r2(q[0] - rx)} ${r2(q[1])} A${r2(rx)} ${r2(ry)} 0 1 0 ${r2(q[0] + rx)} ${r2(q[1])} A${r2(rx)} ${r2(ry)} 0 1 0 ${r2(q[0] - rx)} ${r2(q[1])} Z`;
+    };
+    const flower = (c, R, rot) => {
+      let d = '';
+      for (let i = 0; i < 5; i++) {
+        const a = rot + (i * 2 * Math.PI) / 5, dir = [Math.cos(a), Math.sin(a)];
+        d += lens([c[0] + dir[0] * R * 0.26, c[1] + dir[1] * R * 0.26], dir, R * 0.74, 0.62);
+      }
+      return d + dot(c, R * 0.16);
+    };
+    const off = (t, side, dist) => { const p = bez(t), u = der(t); return [p[0] - u[1] * side * dist, p[1] + u[0] * side * dist]; };
+
+    const ang = (spread * Math.PI) / 180;
+    let fill = '';
+    for (let i = 0; i < count; i++) {
+      const t = from + i * ((to - from) / Math.max(1, count - 1));
+      const p = bez(t), u = der(t), n = [-u[1], u[0]], s = i % 2 ? 1 : -1;
+      const dir = [u[0] * Math.cos(ang) + n[0] * s * Math.sin(ang), u[1] * Math.cos(ang) + n[1] * s * Math.sin(ang)];
+      fill += lens(p, dir, L0 * (1 - 0.32 * t), 0.24);
+    }
+    if (tipLeaf) fill += lens(bez(1), der(1), L0 * 0.7, 0.24);
+    berries.forEach(([t, side]) => { fill += dot(off(t, side, unit * 0.026), unit * 0.012, unit * 0.015); });
+    flowers.forEach(([t, side, k]) => { fill += flower(off(t, side, unit * 0.045 * k), L0 * 0.44 * k, t * 5.3 + side); });
+    buds.forEach(([t, side]) => {
+      const u = der(t), n = [-u[1], u[0]];
+      const dir = [u[0] * 0.55 + n[0] * side * 0.83, u[1] * 0.55 + n[1] * side * 0.83];
+      fill += lens(bez(t), dir, L0 * 0.42, 0.42);
+    });
+    return { fill, stem: `M${pt(X(P0))} Q${pt(X(P1))} ${pt(X(P2))}` };
+  }
+
+  function ornaments(g, name) {
+    const { W, H, cx, cy, m } = g;
+    const specs = [];
+    if (name === 'left' || name === 'right') {
+      const X = name === 'right' ? (q) => [W - q[0], q[1]] : (q) => q;
+      specs.push(
+        // rama principal
+        { P0: [0.12 * cx, cy + 0.34 * H], P1: [0.66 * cx, cy + 0.02 * H], P2: [0.3 * cx, cy - 0.31 * H], leaf: m * 0.085, count: 10,
+          berries: [[0.36, 1], [0.62, -1]], flowers: [[0.24, -1, 1], [0.5, 1, 1.15], [0.82, -1, 0.9]], buds: [[0.12, 1], [0.7, 1]] },
+        // ramita alta junto a la bisagra
+        { P0: [0.03 * cx, cy - 0.01 * H], P1: [0.2 * cx, cy - 0.12 * H], P2: [0.08 * cx, cy - 0.25 * H], leaf: m * 0.055, count: 6,
+          from: 0.15, flowers: [[0.55, 1, 0.75]], buds: [[0.3, -1]] },
+        // ramita baja junto a la bisagra
+        { P0: [0.03 * cx, cy + 0.05 * H], P1: [0.2 * cx, cy + 0.15 * H], P2: [0.06 * cx, cy + 0.27 * H], leaf: m * 0.05, count: 5,
+          from: 0.2, berries: [[0.5, -1]], buds: [[0.75, 1]] },
+      );
+      specs.forEach((sp) => { sp.X = X; });
+    } else {
+      // guirnalda: dos ramas que salen del centro hacia los lados, con una flor en el nudo
+      const Y = name === 'top' ? (y) => y * H : (y) => H - y * H;
+      const yb = name === 'top' ? 0.105 : 0.17;
+      for (const flip of [false, true]) {
+        specs.push({
+          P0: [cx - 0.05 * cx, Y(yb)], P1: [cx - 0.36 * cx, Y(yb + 0.035)], P2: [cx - 0.7 * cx, Y(yb - 0.03)],
+          leaf: m * 0.055, count: 8, from: 0.12, flowers: [[0.48, 1, 0.8]], buds: [[0.78, -1]],
+          X: flip ? (q) => [W - q[0], q[1]] : (q) => q,
+        });
+      }
+    }
+    let leaves = '', stem = '';
+    specs.forEach((sp) => { const b = branch({ unit: m, ...sp }); leaves += b.fill; stem += `${b.stem} `; });
+    if (name === 'top' || name === 'bottom') {
+      const yb = name === 'top' ? 0.105 * H : H - 0.17 * H;
+      leaves += branch({ P0: [cx, yb], P1: [cx + 0.5, yb], P2: [cx + 1, yb], leaf: m * 0.05, count: 0, tipLeaf: false, unit: m,
+        flowers: [[0, 0, 1.25]] }).fill;
+    }
+    return { leaves, stem: stem.trim(), stroke: r2(m * 0.006) };
+  }
+
+  /* ---------- Construcción de las solapas ----------
+     Cada solapa se dibuja una sola vez (SVG convertido en imagen) y se reparte en bandas de <canvas>.
+     Las bandas están encadenadas desde la bisagra hasta la punta: girando un poco cada una respecto
+     a la anterior, la solapa se curva como el papel. Durante la animación el navegador solo mueve
+     imágenes ya pintadas, lo que evita fallos y tirones en pantallas grandes. */
+  const BANDS = 6;
+  let flaps = {};
+  let builtKey = '';
+  let building = null;
+  let buildSeq = 0;
+  let fallback = false;
+
+  const flapScale = (W, H) => Math.min(window.devicePixelRatio || 1, W * H > 1.5e6 ? 1.5 : 2);
+  const flapKey = () => {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    const color = getComputedStyle(root).getPropertyValue('--envelope').trim();
+    return `${W}x${H}|${color}|${flapScale(W, H)}`;
+  };
+  const loadImage = (svg) => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('No se pudo dibujar la solapa'));
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  });
+
+  function buildFlaps() {
+    const seq = ++buildSeq;
+    const job = doBuild(seq)
+      .catch((err) => { console.warn(err); fallback = true; })
+      .finally(() => { if (building === job) building = null; });
+    building = job;
+    return job;
+  }
+
+  async function doBuild(seq) {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    const cx = W / 2, cy = H / 2, m = Math.min(W, H);
+    const g = { W, H, cx, cy, m };
+    const e = 2, pad = 32, r = m * 0.075, ov = m * 0.09, touch = r * 0.32, ol = 1;
+    const color = getComputedStyle(root).getPropertyValue('--envelope').trim() || '#3A5A80';
+    // En sobres claros, el relieve y las sombras usan un marrón cálido y suave en vez de negro.
+    const rgb = (color.match(/[0-9a-f]{2}/gi) || ['3A', '5A', '80']).slice(0, 3).map((h) => parseInt(h, 16) / 255);
+    const lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    const tone = lum > 0.6
+      ? { embossDark: 'rgba(122,96,64,.2)', embossLight: 'rgba(255,255,255,.7)', shadow: '#7A6040', shadowK: 0.5, gradK: 0.45, shade: '#5C4630', vignette: 'rgba(110,86,56,.12)' }
+      : { embossDark: 'rgba(0,0,0,.34)', embossLight: 'rgba(255,255,255,.2)', shadow: '#000', shadowK: 1, gradK: 1, shade: '#000', vignette: 'rgba(0,0,0,.26)' };
+    const dpr = flapScale(W, H);
+    const key = flapKey();
+
+    // Orden de pintado: superior e inferior debajo, laterales encima (como en un sobre real).
+    const defs = {
+      top:    { A: [-e, -e], T: [cx, cy + ov], B: [W + e, -e], axis: 'y', dir: 1, hinge: -e, origin: '50% 0%',
+                grad: [cx, 0, cx, cy, '#FFFFFF', 0.07, '#000000', 0.05], shadow: [2, 6, 0.22], edge: 0.14 },
+      bottom: { A: [-e, H + e], T: [cx, cy - ov], B: [W + e, H + e], axis: 'y', dir: -1, hinge: H + e, origin: '50% 100%',
+                grad: [cx, H, cx, cy, '#000000', 0.16, '#FFFFFF', 0.02], shadow: [1, 6, 0.22], edge: 0.1 },
+      left:   { A: [-e, -e], T: [cx + touch, cy], B: [-e, H + e], axis: 'x', dir: 1, hinge: -e, origin: '0% 50%',
+                grad: [0, cy, cx, cy, '#000000', 0.1, '#FFFFFF', 0.03], shadow: [3, 7, 0.4], edge: 0.12 },
+      right:  { A: [W + e, -e], T: [cx - touch, cy], B: [W + e, H + e], axis: 'x', dir: -1, hinge: W + e, origin: '100% 50%',
+                grad: [W, cy, cx, cy, '#000000', 0.1, '#FFFFFF', 0.03], shadow: [3, 7, 0.4], edge: 0.12 },
+    };
+
+    const frag = document.createDocumentFragment();
+    const next = {};
+    for (const [name, d] of Object.entries(defs)) {
+      // Geometría de las bandas (cada caja incluye 1 px de solape con la siguiente).
+      const tip = d.axis === 'y' ? d.T[1] : d.T[0];
+      const lim = d.axis === 'y' ? [-e, H + e] : [-e, W + e];
+      const end = d.dir === 1 ? Math.min(lim[1], tip + pad) : Math.max(lim[0], tip - pad);
+      const h = Math.abs(end - d.hinge) / BANDS;
+      const boxes = [];
+      for (let k = 0; k < BANDS; k++) {
+        const a = d.hinge + d.dir * k * h;
+        const lo = d.dir === 1 ? a : a - h;
+        const sv = d.axis === 'y' ? { x: -e, y: lo, w: W + 2 * e, h } : { x: lo, y: -e, w: h, h: H + 2 * e };
+        if (k < BANDS - 1) {
+          if (d.axis === 'y') { sv.h += ol; if (d.dir === -1) sv.y -= ol; }
+          else { sv.w += ol; if (d.dir === -1) sv.x -= ol; }
+        }
+        boxes.push(sv);
+      }
+      const ux0 = Math.min(...boxes.map((b) => b.x)), uy0 = Math.min(...boxes.map((b) => b.y));
+      const uw = Math.max(...boxes.map((b) => b.x + b.w)) - ux0, uh = Math.max(...boxes.map((b) => b.y + b.h)) - uy0;
+      const pxW = Math.max(1, Math.round(uw * dpr)), pxH = Math.max(1, Math.round(uh * dpr));
+      const head = `<svg xmlns="http://www.w3.org/2000/svg" width="${pxW}" height="${pxH}" viewBox="${r2(ux0)} ${r2(uy0)} ${r2(uw)} ${r2(uh)}" preserveAspectRatio="none">`;
+
+      // Dibujo del papel de la solapa
+      const P = flapPaths(d.A, d.T, d.B, r);
+      const br = ornaments(g, name);
+      const [gx1, gy1, gx2, gy2, c0, o0, c1, o1] = d.grad;
+      const [sdy, sstd, sop] = d.shadow;
+      const art = `${head}
+        <defs>
+          <clipPath id="clip"><path d="${P.closed}"/></clipPath>
+          <linearGradient id="grad" gradientUnits="userSpaceOnUse" x1="${r2(gx1)}" y1="${r2(gy1)}" x2="${r2(gx2)}" y2="${r2(gy2)}">
+            <stop offset="0" stop-color="${c0}" stop-opacity="${c0 === '#000000' ? o0 * tone.gradK : o0}"/><stop offset="1" stop-color="${c1}" stop-opacity="${c1 === '#000000' ? o1 * tone.gradK : o1}"/>
+          </linearGradient>
+          <filter id="sh" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+            <feDropShadow dx="0" dy="${sdy}" stdDeviation="${sstd}" flood-color="${tone.shadow}" flood-opacity="${r2(sop * tone.shadowK)}"/>
+          </filter>
+          <pattern id="noise" patternUnits="userSpaceOnUse" width="64" height="64">
+            <image href="${NOISE}" width="64" height="64" preserveAspectRatio="none"/>
+          </pattern>
+          ${br ? `<g id="olive"><path d="${br.leaves}"/><path d="${br.stem}" fill="none" stroke-width="${br.stroke}" stroke-linecap="round"/></g>` : ''}
+        </defs>
+        <path d="${P.closed}" fill="${color}" filter="url(#sh)"/>
+        <g clip-path="url(#clip)">
+          ${br ? `<use href="#olive" transform="translate(1.1 1.5)" fill="${tone.embossDark}" stroke="${tone.embossDark}"/>
+                  <use href="#olive" transform="translate(-.9 -1)" fill="${tone.embossLight}" stroke="${tone.embossLight}"/>
+                  <use href="#olive" fill="${color}" stroke="${color}"/>` : ''}
+          <rect x="${r2(ux0)}" y="${r2(uy0)}" width="${r2(uw)}" height="${r2(uh)}" fill="url(#grad)"/>
+          <rect x="${r2(ux0)}" y="${r2(uy0)}" width="${r2(uw)}" height="${r2(uh)}" fill="url(#noise)"/>
+        </g>
+        <path d="${P.open}" fill="none" stroke="#FFFFFF" stroke-opacity="${d.edge}" stroke-width="1"/>
+      </svg>`;
+      const silhouette = (fill) => `${head}<path d="${P.closed}" fill="${fill}"/></svg>`;
+
+      const [imgArt, imgDark, imgLight] = await Promise.all([
+        loadImage(art), loadImage(silhouette(tone.shade)), name === 'top' ? loadImage(silhouette('#FFF')) : null,
+      ]);
+      if (seq !== buildSeq) return;
+
+      const sx = imgArt.naturalWidth / uw, sy = imgArt.naturalHeight / uh;
+      const slice = (img, sv, cls) => {
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(sv.w * dpr));
+        c.height = Math.max(1, Math.round(sv.h * dpr));
+        c.className = cls;
+        c.style.width = `${r2(sv.w)}px`;
+        c.style.height = `${r2(sv.h)}px`;
+        c.getContext('2d').drawImage(img, (sv.x - ux0) * sx, (sv.y - uy0) * sy, sv.w * sx, sv.h * sy, 0, 0, c.width, c.height);
+        return c;
+      };
+
+      // Bandas encadenadas: cada una es hija de la anterior y gira sobre el borde que comparten.
+      const bands = [];
+      let parent = null, prev = null;
+      boxes.forEach((sv) => {
+        const el = document.createElement('div');
+        el.className = `band band--${name}`;
+        Object.assign(el.style, {
+          left: `${r2(prev ? sv.x - prev.x : sv.x)}px`,
+          top: `${r2(prev ? sv.y - prev.y : sv.y)}px`,
+          width: `${r2(sv.w)}px`, height: `${r2(sv.h)}px`,
+          transformOrigin: d.origin,
+        });
+        // Papel y sombras van juntos en una cara plana, para que el navegador no los reordene en 3D.
+        const face = document.createElement('div');
+        face.className = 'face';
+        face.append(slice(imgArt, sv, 'paper'));
+        const light = imgLight ? slice(imgLight, sv, 'shade shade--light') : null;
+        if (light) face.append(light);
+        const dark = slice(imgDark, sv, 'shade shade--dark');
+        face.append(dark);
+        el.append(face);
+        (parent || frag).append(el);
+        bands.push({ el, dark, light });
+        parent = el;
+        prev = sv;
+      });
+      next[name] = { bands };
+    }
+    if (seq !== buildSeq) return;
+    flapsEl.style.perspective = `${Math.round(Math.max(W, H) * 1.5)}px`;
+    root.style.setProperty('--flap-vignette', tone.vignette);
+    flapsEl.replaceChildren(frag);
+    flaps = next;
+    builtKey = key;
+    fallback = false;
+  }
+
+  /* ---------- Animación ---------- */
+  const EASE_FLAP = 'cubic-bezier(.55,.06,.35,1)';
+  const EASE_OUT = 'cubic-bezier(.2,.7,.2,1)';
+  let anims = [], idle = [], state = 'closed';
+
+  const add = (el, keyframes, opts) => {
+    const a = el.animate(keyframes, { fill: 'both', ...opts });
+    a.pause();
+    anims.push(a);
+    return a;
+  };
+
+  function buildOpenTimeline() {
+    anims = [];
+    if (reduceMotion.matches || fallback || !flaps.top) {
+      add(seal, [{ opacity: 1 }, { opacity: 0 }], { duration: 300 });
+      add(hint, [{ opacity: 1 }, { opacity: 0 }], { duration: 300 });
+      add(flapsEl, [{ opacity: 1 }, { opacity: 0 }], { duration: 500, delay: 150 });
+      return;
+    }
+
+    // 1. Se presiona el lacre, se despega del papel y se desvanece entero
+    add(seal, [
+      { transform: 'translateY(0) scale(1)', opacity: 1 },
+      { transform: 'translateY(0) scale(.94)', opacity: 1, offset: 0.15 },
+      { transform: 'translateY(-4%) scale(1.07)', opacity: 1, offset: 0.45 },
+      { transform: 'translateY(-10%) scale(1.13)', opacity: 0 },
+    ], { duration: 900, easing: 'cubic-bezier(.3,0,.35,1)' });
+    add(hint, [{ opacity: 1 }, { opacity: 0 }], { duration: 280, easing: 'ease-out' });
+
+    // 2. Se abren las solapas (laterales primero) y se curvan un poco mientras giran
+    const openFlap = (name, rot, sign, curl, timing, dark, light) => {
+      flaps[name].bands.forEach((b, k) => {
+        if (k === 0) {
+          add(b.el, [{ transform: `${rot}(0deg)` }, { transform: `${rot}(${sign * 115}deg)` }], timing);
+        } else {
+          add(b.el, [
+            { transform: `${rot}(0deg)` },
+            { transform: `${rot}(${sign * curl}deg)`, offset: 0.4 },
+            { transform: `${rot}(${sign * curl * 0.7}deg)`, offset: 0.72 },
+            { transform: `${rot}(${sign * curl * 0.45}deg)` },
+          ], timing);
+        }
+        add(b.dark, dark, timing);
+        if (light && b.light) add(b.light, light, timing);
+      });
+    };
+    const sideDark = [{ opacity: 0 }, { opacity: 0.26, offset: 0.45 }, { opacity: 0.55 }];
+    const side = { delay: 420, duration: 2000, easing: EASE_FLAP };
+    openFlap('left', 'rotateY', -1, 6, side, sideDark);
+    openFlap('right', 'rotateY', 1, 6, side, sideDark);
+    openFlap('top', 'rotateX', 1, 6.5, { delay: 690, duration: 2100, easing: EASE_FLAP },
+      [{ opacity: 0 }, { opacity: 0, offset: 0.5 }, { opacity: 0.45 }],
+      [{ opacity: 0 }, { opacity: 0.16, offset: 0.3 }, { opacity: 0, offset: 0.55 }, { opacity: 0 }]);
+    openFlap('bottom', 'rotateX', -1, 6.5, { delay: 770, duration: 2000, easing: EASE_FLAP },
+      [{ opacity: 0 }, { opacity: 0.34, offset: 0.5 }, { opacity: 0.6 }]);
+
+    // 3. La cámara avanza hacia el interior; la invitación ya está ahí y se asienta
+    add(flapsEl, [{ transform: 'scale(1)' }, { transform: 'scale(1.4)' }], { delay: 420, duration: 2400, easing: 'cubic-bezier(.45,0,.7,.4)' });
+    add(flapsEl, [{ opacity: 1 }, { opacity: 0 }], { delay: 2120, duration: 500, easing: 'linear' });
+    add(interior, [{ transform: 'scale(.95)' }, { transform: 'scale(1)' }], { delay: 420, duration: 2600, easing: EASE_OUT });
+    add(vignette, [{ opacity: 1 }, { opacity: 0.3 }], { delay: 760, duration: 2200, easing: 'ease-out' });
+  }
+
+  function startIdle() {
+    idle.forEach((a) => a.cancel());
+    idle = reduceMotion.matches ? [] : [
+      sheen.animate([
+        { transform: 'translateX(0px)' },
+        { transform: 'translateX(0px)', offset: 0.45 },
+        { transform: 'translateX(175px)' },
+      ], { duration: 4200, delay: 800, iterations: Infinity, easing: 'cubic-bezier(.45,0,.3,1)' }),
+    ];
+  }
+
+  async function open() {
+    if (state !== 'closed') return;
+    state = 'opening';
+    idle.forEach((a) => a.cancel());
+    idle = [];
+    if (building) await building;
+    if (builtKey !== flapKey()) await buildFlaps();
+    buildOpenTimeline();
+    anims.forEach((a) => a.play());
+    Promise.all(anims.map((a) => a.finished)).then(() => {
+      state = 'open';
+      flapsEl.hidden = true;
+      seal.hidden = true;
+      hint.hidden = true;
+      closeBtn.disabled = false;
+      themeMeta.setAttribute('content', getComputedStyle(root).getPropertyValue('--paper').trim());
+    }).catch(() => {});
+  }
+
+  function reset() {
+    anims.forEach((a) => a.cancel());
+    anims = [];
+    if (builtKey !== flapKey()) buildFlaps(); // por si cambió el tamaño de la ventana o el color
+    flapsEl.hidden = false;
+    seal.hidden = false;
+    hint.hidden = false;
+    state = 'closed';
+    closeBtn.disabled = true;
+    themeMeta.setAttribute('content', getComputedStyle(root).getPropertyValue('--envelope').trim());
+    startIdle();
+    seal.focus({ preventScroll: true });
+  }
+
+
+  /* ---------- Eventos ---------- */
+  seal.addEventListener('click', open);
+  closeBtn.addEventListener('click', reset);
+  swatches.forEach((btn) => btn.addEventListener('click', () => {
+    root.style.setProperty('--envelope', btn.dataset.color);
+    // En sobres claros el texto «Toca el sello» pasa a tinta oscura para que se lea.
+    if (btn.dataset.ink) root.style.setProperty('--on-envelope', btn.dataset.ink);
+    else root.style.removeProperty('--on-envelope');
+    swatches.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    if (state === 'closed') {
+      themeMeta.setAttribute('content', btn.dataset.color);
+      buildFlaps();
+    }
+  }));
+
+  let resizeTimer;
+  addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { if (state === 'closed') buildFlaps(); }, 150);
+  });
+
+  buildFlaps();
+  startIdle();
+})();
+</script>
+</body>
+</html>

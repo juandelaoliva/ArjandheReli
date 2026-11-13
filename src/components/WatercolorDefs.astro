@@ -1,0 +1,47 @@
+---
+// Filtros SVG de acuarela. Se incluyen una sola vez en la página (Invitation.astro).
+// wc-edge: borde irregular y pigmento moteado en manchas grandes.
+// wc-soft: trazo suave de pincel para hojas.
+---
+
+<svg class="wc-defs" aria-hidden="true" focusable="false" width="0" height="0">
+  <defs>
+    <filter id="wc-edge" x="-25%" y="-25%" width="150%" height="150%" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="3" seed="4" result="warp"></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="26" xChannelSelector="R" yChannelSelector="G" result="ragged"></feDisplacementMap>
+      <!-- Pigmento: manchas anchas de más y menos densidad (no puntitos) + un grano fino casi imperceptible -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.022 0.03" numOctaves="4" seed="11" result="blooms"></feTurbulence>
+      <feColorMatrix in="blooms" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.7 -0.2" result="density"></feColorMatrix>
+      <feTurbulence type="fractalNoise" baseFrequency="0.35" numOctaves="2" seed="2" result="fine"></feTurbulence>
+      <feColorMatrix in="fine" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0.62" result="tooth"></feColorMatrix>
+      <feComposite in="ragged" in2="density" operator="in" result="washed"></feComposite>
+      <feComposite in="washed" in2="tooth" operator="in" result="pigment"></feComposite>
+      <feGaussianBlur in="pigment" stdDeviation="0.6"></feGaussianBlur>
+    </filter>
+    <filter id="wc-soft" x="-20%" y="-20%" width="140%" height="140%" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="7" result="warp"></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="4" xChannelSelector="R" yChannelSelector="G" result="ragged"></feDisplacementMap>
+      <feTurbulence type="fractalNoise" baseFrequency="0.12" numOctaves="2" seed="3" result="grainy"></feTurbulence>
+      <feColorMatrix in="grainy" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -0.15" result="mottle"></feColorMatrix>
+      <feComposite in="ragged" in2="mottle" operator="in"></feComposite>
+    </filter>
+    <!-- Pétalos: borde ligeramente irregular y densidad suave (sin granulado) -->
+    <filter id="wc-petal" x="-25%" y="-25%" width="150%" height="150%" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="2" seed="5" result="warp"></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="2.4" xChannelSelector="R" yChannelSelector="G" result="ragged"></feDisplacementMap>
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="9" result="blooms"></feTurbulence>
+      <feColorMatrix in="blooms" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 0.55" result="density"></feColorMatrix>
+      <feComposite in="ragged" in2="density" operator="in" result="out"></feComposite>
+      <feGaussianBlur in="out" stdDeviation="0.25"></feGaussianBlur>
+    </filter>
+  </defs>
+</svg>
+
+<style>
+  .wc-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+</style>

@@ -1,0 +1,58 @@
+/* Dirección visual: «correspondencia» con un guiño albanés.
+   Papel de algodón, sobre azul de correo, tinta azul noche,
+   forro dorado con motivo de bordado albanés y lacre rojo profundo. */
+
+:root {
+  color-scheme: light; /* es papel: tema claro fijo */
+
+  /* Paleta */
+  --algodon: #fafaf7; /* fondo y tarjeta */
+  --tinta: #1e2b45; /* texto */
+  --sobre: #3a5a80; /* sobre y botón principal */
+  --forro: #d4a93c; /* forro interior y detalles */
+  --lacre: #8e1b24; /* sello y selección; rojo profundo, guiño a la bandera */
+  --niebla: #dce3ea; /* bordes y fondos alternos */
+  --gold: #b48a3c; /* filetes y detalles dorados */
+  --gold-soft: #d9c18a;
+
+  /* Tipografía */
+  --font-display: 'Playfair Display', 'Bodoni 72', Didot, serif;
+  --font-script: 'Pinyon Script', 'Snell Roundhand', cursive;
+  --font-label: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
+  --font-text: 'Jost Variable', system-ui, sans-serif;
+
+  /* Escala: base 17 px, ratio 1,333 */
+  --step--1: 0.797rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.416rem;
+  --step-2: 1.888rem;
+  --step-3: 2.517rem;
+  --step-4: 3.355rem;
+  --step-5: 4.472rem;
+
+  /* Estilo de acuarela (por defecto: olivo y rosa empolvado). Cambia con html[data-style]. */
+  --accent: #6d7d4f;
+  --wash-1: #a2b48d; /* salvia */
+  --wash-2: #ebbcb4; /* rosa empolvado */
+  --wash-3: #e3c47e; /* dorado suave */
+
+  --leading: 1.6;
+  --measure: 34rem;
+  --gutter: 1rem;
+  --tap: 44px;
+}
+
+/* Estilos de acuarela alternativos (selector de pruebas). */
+:root[data-style='burdeos'] {
+  --accent: #8e1b33;
+  --wash-1: #a04258; /* vino */
+  --wash-2: #aebba6; /* salvia grisácea */
+  --wash-3: #dba3ad; /* rosa viejo */
+}
+
+:root[data-style='azul'] {
+  --accent: #3a5a80;
+  --wash-1: #8aaccd; /* azul lavado */
+  --wash-2: #e4d5b3; /* arena */
+  --wash-3: #82b2aa; /* verde agua */
+}

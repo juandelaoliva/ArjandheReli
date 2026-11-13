@@ -1,0 +1,56 @@
+---
+// Rama pintada a acuarela: tallo, hojas de olivo, aceitunas y flores. Sigue el motivo de las ramas del sobre.
+import Blossom from './Blossom.astro';
+import { oliveBranch } from '../lib/watercolor';
+
+interface Props {
+  seed?: number;
+  size?: string;
+  x?: string;
+  y?: string;
+  rot?: number;
+  flip?: boolean;
+  opacity?: number;
+  leaves?: number;
+  /** Cuántas flores lleva (0–3). */
+  flowers?: number;
+  tone?: 1 | 2 | 3;
+}
+
+const { seed = 1, size = '9rem', x = '50%', y = '50%', rot = 0, flip = false, opacity = 1, leaves = 11, flowers = 3, tone = 2 } = Astro.props;
+const b = oliveBranch(seed, leaves);
+---
+
+<svg
+  class="branch"
+  viewBox="0 0 200 300"
+  aria-hidden="true"
+  focusable="false"
+  style={`--size:${size};left:${x};top:${y};opacity:${opacity};transform:translate(-50%,-50%) rotate(${rot}deg) scaleX(${flip ? -1 : 1})`}
+>
+  <g filter="url(#wc-soft)">
+    <path class="stem" d={b.stem}></path>
+    {b.leaves.map((d, i) => <path class:list={['leaf', i % 3 === 0 && 'alt']} d={d}></path>)}
+    {b.olives.map(([cx, cy]) => <ellipse class="olive" cx={cx} cy={cy} rx="5" ry="6.5"></ellipse>)}
+  </g>
+  {b.blooms.slice(0, flowers).map((f, i) => (
+    <Blossom seed={seed * 7 + i} x={f.x} y={f.y} scale={f.s * 0.95} rot={f.rot} tone={(i % 2 ? 3 : tone) as 1 | 2 | 3} petals={i === 0 ? 7 : 6} />
+  ))}
+</svg>
+
+<style>
+  .branch {
+    position: absolute;
+    width: var(--size);
+    height: auto;
+    aspect-ratio: 2 / 3;
+    overflow: visible;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  .stem { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; stroke-opacity: 0.85; }
+  .leaf { fill: var(--wash-1); fill-opacity: 0.8; stroke: var(--accent); stroke-opacity: 0.5; stroke-width: 1; }
+  .leaf.alt { fill: var(--accent); fill-opacity: 0.55; }
+  .olive { fill: var(--wash-2); fill-opacity: 0.85; stroke: var(--accent); stroke-opacity: 0.4; stroke-width: 0.8; }
+</style>

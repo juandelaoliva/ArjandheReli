@@ -1,0 +1,195 @@
+---
+// Música de fondo: empieza al abrir el sobre (gesto del usuario) y tiene un botón de silencio siempre visible.
+// Si alguien la silencia, se recuerda (localStorage) y no vuelve a sonar sola. Se pausa con la pestaña en segundo plano.
+import { boda } from '../data/boda';
+import { ui, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang];
+const base = import.meta.env.BASE_URL;
+const src = `${base.endsWith('/') ? base : `${base}/`}${boda.musica.archivo}`;
+---
+
+{
+  boda.musica.activa && (
+    <div class="music" data-music data-src={src} data-volume={boda.musica.volumen} data-label-on={t.musicOn} data-label-off={t.musicOff}>
+      <button type="button" class="music-btn" aria-label={t.musicOff} aria-pressed="false">
+        <svg class="ic-on" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+          <path d="M4 9.5v5h3.6L12 18.5v-13L7.6 9.5H4Z" />
+          <path class="wave" d="M15.2 9a4.2 4.2 0 0 1 0 6M17.6 6.6a7.6 7.6 0 0 1 0 10.8" />
+        </svg>
+        <svg class="ic-off" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+          <path d="M4 9.5v5h3.6L12 18.5v-13L7.6 9.5H4Z" />
+          <path class="wave" d="M16 9.5l5 5M21 9.5l-5 5" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-music]');
+  if (root) {
+    const btn = root.querySelector<HTMLButtonElement>('.music-btn')!;
+    const src = root.dataset.src!;
+    const target = Number(root.dataset.volume ?? 0.55);
+    const label = { on: root.dataset.labelOn ?? '', off: root.dataset.labelOff ?? '' };
+    const KEY = 'musica';
+
+    const stored = () => {
+      try {
+        return localStorage.getItem(KEY);
+      } catch {
+        return null;
+      }
+    };
+    const remember = (v: 'on' | 'off') => {
+      try {
+        localStorage.setItem(KEY, v);
+      } catch {
+        /* sin almacenamiento: no se recuerda */
+      }
+    };
+
+    let audio: HTMLAudioElement | null = null;
+    let playing = false;
+    let raf = 0;
+
+    const ensure = () => {
+      if (!audio) {
+        audio = new Audio(src);
+        audio.loop = true;
+        audio.preload = 'auto';
+        audio.volume = 0;
+      }
+      return audio;
+    };
+
+    // Entrada/salida suave. En iOS Safari el volumen del elemento no se puede cambiar: ahí suena directamente al volumen del móvil.
+    const fadeTo = (v: number, ms: number, done?: () => void) => {
+      const a = ensure();
+      cancelAnimationFrame(raf);
+      const from = a.volume;
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const k = Math.min(1, (now - t0) / ms);
+        a.volume = Math.max(0, Math.min(1, from + (v - from) * k));
+        if (k < 1) raf = requestAnimationFrame(step);
+        else done?.();
+      };
+      raf = requestAnimationFrame(step);
+    };
+
+    const setUI = (on: boolean) => {
+      playing = on;
+      btn.setAttribute('aria-pressed', String(on));
+      btn.setAttribute('aria-label', on ? label.on : label.off);
+      root.classList.toggle('is-on', on);
+    };
+
+    const play = async () => {
+      try {
+        await ensure().play();
+        setUI(true);
+        fadeTo(target, 2600);
+      } catch {
+        setUI(false); // el navegador no lo permitió: el botón sigue disponible
+      }
+    };
+
+    const pause = () => {
+      setUI(false);
+      fadeTo(0, 450, () => audio?.pause());
+    };
+
+    btn.addEventListener('click', () => {
+      if (playing) {
+        remember('off');
+        pause();
+      } else {
+        remember('on');
+        void play();
+      }
+    });
+
+    // Al abrir el sobre. Si alguien ya la había silenciado antes, no se fuerza.
+    window.addEventListener('intro:open', () => {
+      if (stored() !== 'off') void play();
+    });
+
+    // Con la pestaña en segundo plano o el móvil bloqueado, se pausa; al volver, se reanuda si estaba sonando.
+    document.addEventListener('visibilitychange', () => {
+      if (!audio) return;
+      if (document.hidden) audio.pause();
+      else if (playing) audio.play().catch(() => setUI(false));
+    });
+
+    // Se precarga en reposo para que empiece al instante al tocar el sello (no antes de que la página esté lista).
+    window.addEventListener('load', () => setTimeout(ensure, 1500));
+  }
+</script>
+
+<style>
+  .music {
+    position: fixed;
+    top: max(0.45rem, env(safe-area-inset-top));
+    left: var(--gutter);
+    z-index: 45;
+  }
+
+  /* Mientras el sobre está cerrado no hay botón: aparece cuando se abre. */
+  :global(.js:not(.intro-done)) .music {
+    display: none;
+  }
+
+  .music-btn {
+    display: grid;
+    place-items: center;
+    width: var(--tap);
+    height: var(--tap);
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--algodon) 78%, transparent);
+    color: var(--tinta);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    transition: background 0.25s ease;
+  }
+
+  .music-btn:hover {
+    background: color-mix(in srgb, var(--algodon) 92%, transparent);
+  }
+
+  .music-btn svg {
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .music-btn svg path:first-child {
+    stroke: none;
+  }
+
+  .music-btn .wave {
+    fill: none;
+  }
+
+  .ic-off,
+  .is-on .ic-on {
+    display: block;
+  }
+
+  .ic-on,
+  .is-on .ic-off {
+    display: none;
+  }
+</style>

@@ -1,0 +1,40 @@
+---
+// La invitación completa en un idioma. Cada página de src/pages solo elige el idioma.
+import Base from '../layouts/Base.astro';
+import LangSwitcher from './LangSwitcher.astro';
+import Hero from './Hero.astro';
+import Envelope from './Envelope.astro';
+import WatercolorDefs from './WatercolorDefs.astro';
+import Countdown from './Countdown.astro';
+import Story from './Story.astro';
+import Venue from './Venue.astro';
+import Contact from './Contact.astro';
+import Music from './Music.astro';
+import RsvpForm from './rsvp/RsvpForm.astro';
+import { boda } from '../data/boda';
+import { weddingDate } from '../i18n/format';
+import type { Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const title = `${boda.novios.el} & ${boda.novios.ella}`;
+const description = `${weddingDate(lang)} · ${boda.ciudad[lang]}`;
+---
+
+<Base lang={lang} title={title} description={description}>
+  <WatercolorDefs />
+  <LangSwitcher lang={lang} />
+  <Envelope lang={lang} />
+  <main>
+    <Hero lang={lang} />
+    <Countdown lang={lang} />
+    <Story lang={lang} />
+    <Venue lang={lang} />
+    <RsvpForm lang={lang} />
+    <Contact lang={lang} />
+  </main>
+  <Music lang={lang} />
+</Base>

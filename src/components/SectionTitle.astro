@@ -1,0 +1,37 @@
+---
+// Título de sección con un pequeño adorno floral debajo.
+import Blossom from './Blossom.astro';
+import ReliefDecor from './ReliefDecor.astro';
+---
+
+<div class="title-block">
+  <h2 class="section-title"><slot /></h2>
+  <ReliefDecor kind="divider" />
+  <svg class="orn" viewBox="-70 -14 140 28" aria-hidden="true" focusable="false">
+    <path class="ln" d="M-66 0 H-22 M22 0 H66"></path>
+    <path class="lf" d="M-18 0 Q-27 -9 -38 -5 Q-30 2 -18 0 Z M18 0 Q27 -9 38 -5 Q30 2 18 0 Z"></path>
+    <Blossom seed={3} scale={0.3} tone={2} petals={6} />
+  </svg>
+</div>
+
+<style>
+  .title-block {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .title-block :global(.section-title) {
+    margin-bottom: 0.5rem;
+  }
+
+  .orn {
+    width: 8.5rem;
+    height: auto;
+  }
+
+  .ln { fill: none; stroke: var(--accent); stroke-opacity: 0.55; stroke-width: 0.9; stroke-linecap: round; }
+  .lf { fill: var(--wash-1); fill-opacity: 0.8; stroke: var(--accent); stroke-opacity: 0.5; stroke-width: 0.6; }
+</style>

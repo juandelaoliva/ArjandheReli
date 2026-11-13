@@ -1,0 +1,38 @@
+---
+// Flor de acuarela para colocar DENTRO de un <svg>. Pétalos en tres capas: el color se acumula en el borde
+// y el centro queda más claro, como una peonía pintada a mano.
+import { blossom } from '../lib/watercolor';
+
+interface Props {
+  seed?: number;
+  x?: number;
+  y?: number;
+  scale?: number;
+  rot?: number;
+  tone?: 1 | 2 | 3;
+  petals?: number;
+}
+
+const { seed = 1, x = 0, y = 0, scale = 1, rot = 0, tone = 2, petals = 6 } = Astro.props;
+const b = blossom(seed, petals);
+---
+
+<g class={`blossom tone-${tone}`} transform={`translate(${x} ${y}) rotate(${rot}) scale(${scale})`} filter="url(#wc-petal)">
+  {b.outer.map((p) => <path class="o" d={p.d} transform={`rotate(${p.rot})`} />)}
+  {b.mid.map((p) => <path class="m" d={p.d} transform={`rotate(${p.rot})`} />)}
+  {b.inner.map((p) => <path class="i" d={p.d} transform={`rotate(${p.rot})`} />)}
+  <circle class="heart" r="5.5"></circle>
+  {b.dots.map(([cx, cy]) => <circle class="seed" cx={cx} cy={cy} r="0.9" />)}
+</g>
+
+<style>
+  .tone-1 { color: var(--wash-1); }
+  .tone-2 { color: var(--wash-2); }
+  .tone-3 { color: var(--wash-3); }
+
+  .o { fill: currentColor; fill-opacity: 0.55; stroke: currentColor; stroke-opacity: 0.8; stroke-width: 0.7; }
+  .m { fill: currentColor; fill-opacity: 0.5; stroke: currentColor; stroke-opacity: 0.7; stroke-width: 0.6; }
+  .i { fill: currentColor; fill-opacity: 0.45; stroke: currentColor; stroke-opacity: 0.7; stroke-width: 0.6; }
+  .heart { fill: var(--wash-3); fill-opacity: 0.9; stroke: var(--accent); stroke-opacity: 0.5; stroke-width: 0.6; }
+  .seed { fill: var(--accent); fill-opacity: 0.8; }
+</style>

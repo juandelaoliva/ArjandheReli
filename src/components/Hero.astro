@@ -1,0 +1,318 @@
+---
+// Portada: es lo que hay debajo del sobre. Al abrirse el sobre, esto es la página.
+// Diseño de invitación clásica: marco doble dorado con esquinas, caligrafía y fecha con el día en grande.
+import Wash from './Wash.astro';
+import Branch from './Branch.astro';
+import Flower from './Flower.astro';
+import ReliefDecor from './ReliefDecor.astro';
+import { boda } from '../data/boda';
+import { dateParts } from '../i18n/format';
+import { ui, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const d = dateParts(lang);
+---
+
+<header class="hero" data-hero>
+  <ReliefDecor kind="top" />
+  <ReliefDecor kind="bottom" />
+  <Wash seed={2} tone={2} size="30rem" x="10%" y="10%" rot={15} opacity={0.55} />
+  <Wash seed={6} tone={1} size="28rem" x="92%" y="92%" rot={-20} opacity={0.5} />
+  <Branch seed={4} size="13rem" x="4%" y="88%" rot={-6} opacity={0.95} />
+  <Branch seed={8} size="11rem" x="97%" y="20%" rot={16} flip opacity={0.9} flowers={2} />
+  <Flower seed={3} tone={2} size="5.5rem" x="9%" y="7%" rot={10} opacity={0.95} petals={7} />
+  <Flower seed={11} tone={3} size="3.2rem" x="90%" y="80%" rot={40} opacity={0.9} petals={5} />
+
+  <div class="card">
+    <span class="frame" aria-hidden="true"></span>
+    {
+      [0, 90, 180, 270].map((r) => (
+        <svg class="corner" viewBox="0 0 60 60" style={`transform:rotate(${r}deg)`} aria-hidden="true" focusable="false">
+          <path d="M3 57 V16 Q3 3 16 3 H57" />
+          <path d="M9 57 V20 Q9 9 20 9 H57" />
+          <path d="M3 3 Q15 8 14 20 Q9 14 3 3 Z" class="leaf" />
+          <circle cx="26" cy="26" r="1.6" class="dot" />
+        </svg>
+      ))
+    }
+
+    <div class="content">
+      <p class="invite wc">{boda.invitacion[lang]}</p>
+
+      <p class="rel rel-family">{boda.relieve.familias[lang]}</p>
+
+      <h1 class="names">
+        <span class="n">{boda.novios.el}</span>
+        <span class="amp" aria-hidden="true"><span class="sym wc-i">&amp;</span><span class="word rel-i">{boda.y[lang]}</span></span>
+        <span class="visually-hidden">&amp;</span>
+        <span class="n">{boda.novios.ella}</span>
+      </h1>
+
+      <p class="rel rel-request">{boda.relieve.peticion[lang]}</p>
+
+      <div class="date" role="group">
+        <div class="dg">
+          <span class="side">{d.month}</span>
+          <time class="day" datetime={boda.fecha}>{d.day}</time>
+          <span class="side">{d.year}</span>
+        </div>
+        <p class="when">{d.weekday} · {d.time}</p>
+      </div>
+
+      <ReliefDecor kind="divider" />
+      <svg class="sep" viewBox="-60 -8 120 16" aria-hidden="true" focusable="false">
+        <path d="M-56 0 H-12 M12 0 H56" />
+        <path class="lf" d="M-9 0 Q-5 -6 0 0 Q-5 6 -9 0 Z M9 0 Q5 -6 0 0 Q5 6 9 0 Z" />
+        <circle r="1.6" class="dot" />
+      </svg>
+
+      <p class="place">{boda.lugar.nombre}</p>
+      <p class="city">{boda.ciudad[lang]}, {boda.pais[lang]}</p>
+    </div>
+  </div>
+
+  <p class="scroll-hint">
+    {ui[lang].scrollHint}
+    <span aria-hidden="true">↓</span>
+  </p>
+</header>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 100svh;
+    display: grid;
+    place-items: center;
+    padding: 3.25rem 1rem 1rem;
+  }
+
+  /* Con JS la portada mide EXACTAMENTE la parte visible de la pantalla (svh = altura con las barras del navegador
+     desplegadas) y el script ajusta el contenido a ese alto. Sin JS queda el comportamiento de antes. */
+  :global(.js) .hero {
+    height: 100svh;
+    min-height: 0;
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 30rem);
+    min-height: calc(100svh - 4.25rem);
+    display: grid;
+    place-items: center;
+    padding: 3.5rem 1.5rem 4rem;
+    text-align: center;
+  }
+
+  /* Marco doble dorado. */
+  .frame {
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--gold);
+    pointer-events: none;
+  }
+
+  .frame::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+  }
+
+  .corner {
+    position: absolute;
+    width: 4.2rem;
+    height: 4.2rem;
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1;
+    stroke-linecap: round;
+    pointer-events: none;
+  }
+
+  .corner:nth-of-type(1) { top: -1px; left: -1px; }
+  .corner:nth-of-type(2) { top: -1px; right: -1px; }
+  .corner:nth-of-type(3) { bottom: -1px; right: -1px; }
+  .corner:nth-of-type(4) { bottom: -1px; left: -1px; }
+
+  .corner .leaf { fill: var(--gold); fill-opacity: 0.35; }
+  .corner .dot { fill: var(--gold); stroke: none; }
+
+  /* Solo del estilo «relieve clásico» (ver styles/relieve.css). */
+  .rel,
+  .rel-i {
+    display: none;
+  }
+
+  .content {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    width: 100%;
+  }
+
+  .invite {
+    max-width: 17rem;
+    font-size: var(--step--1);
+    letter-spacing: 0.2em;
+    line-height: 1.9;
+    text-transform: uppercase;
+    color: #4a5468;
+  }
+
+  .names {
+    display: grid;
+    justify-items: center;
+    margin: 1.4rem 0 1.6rem;
+    font-family: var(--font-script);
+    font-weight: 400;
+    font-size: clamp(4.6rem, 22vw, 7.4rem);
+    line-height: 0.95;
+    letter-spacing: 0;
+  }
+
+  .names .n {
+    display: block;
+    padding: 0 0.1em;
+  }
+
+  .names .amp {
+    margin: -0.05em 0 -0.12em;
+    font-size: 0.5em;
+    line-height: 1;
+    color: var(--gold);
+  }
+
+  /* Fecha compacta: mes · día · año en una sola fila y, debajo, día de la semana y hora. */
+  .date {
+    width: min(100%, 21rem);
+    padding: 0.4rem 0 0.55rem;
+    border-block: 1px solid var(--gold);
+  }
+
+  .dg {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1.1rem;
+  }
+
+  .side {
+    font-size: var(--step-0);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  .side:first-child {
+    text-align: right;
+  }
+
+  .side:last-child {
+    text-align: left;
+  }
+
+  .day {
+    font-family: var(--font-display);
+    font-size: clamp(4.2rem, 19vw, 5.6rem);
+    font-weight: 400;
+    line-height: 0.95;
+    font-variant-numeric: lining-nums;
+    color: var(--gold);
+  }
+
+  .when {
+    margin-top: 0.15rem;
+    font-size: var(--step--1);
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+  }
+
+  .sep {
+    width: 7.5rem;
+    height: auto;
+    margin: 1.6rem 0 1.4rem;
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 0.8;
+  }
+
+  .sep .lf { fill: var(--gold); fill-opacity: 0.4; }
+  .sep .dot { fill: var(--gold); stroke: none; }
+
+  .place {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: 1.25;
+  }
+
+  .city {
+    margin-top: 0.25rem;
+    font-size: var(--step--1);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #4a5468;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: max(1.6rem, env(safe-area-inset-bottom));
+    z-index: 2;
+    text-align: center;
+    font-size: var(--step--1);
+    opacity: 0.7;
+    transition: opacity 0.6s ease 0.2s;
+  }
+
+  /* Con JS, la indicación aparece al terminar la intro. */
+  :global(.js:not(.intro-done)) .scroll-hint {
+    opacity: 0;
+    visibility: hidden;
+  }
+</style>
+
+<script>
+  // Ajusta el contenido de la portada a la altura disponible entre las dos coronas: si no cabe, lo reduce
+  // (nunca por debajo de MIN, para que el texto siga siendo legible; en ese caso la portada crece lo justo).
+  const MIN = 0.66;
+  const hero = document.querySelector<HTMLElement>('[data-hero]');
+  const card = hero?.querySelector<HTMLElement>('.card');
+  const content = hero?.querySelector<HTMLElement>('.content');
+
+  function fit() {
+    if (!hero || !card || !content) return;
+    content.style.transform = '';
+    hero.style.height = '';
+    // El contenido se coloca arriba y se centra a mano: si no cabe, el navegador no lo centra solo.
+    card.style.placeItems = 'start center';
+    content.style.transformOrigin = 'top center';
+    const cs = getComputedStyle(card);
+    const avail = card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const natural = content.offsetHeight;
+    if (!natural || avail <= 0) return;
+    let k = Math.min(1, avail / natural);
+    if (k < MIN) {
+      // No cabe ni al mínimo: la portada crece lo justo en lugar de dejar el texto ilegible.
+      k = MIN;
+      hero.style.height = `${Math.ceil(hero.getBoundingClientRect().height + natural * MIN - avail)}px`;
+    }
+    const space = Math.max(0, (card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) - natural * k);
+    content.style.transform = `translateY(${(space / 2).toFixed(1)}px) scale(${k.toFixed(4)})`;
+  }
+
+  if (hero) {
+    fit();
+    document.fonts?.ready.then(fit);
+    let t = 0;
+    new ResizeObserver(() => {
+      cancelAnimationFrame(t);
+      t = requestAnimationFrame(fit);
+    }).observe(document.documentElement);
+    addEventListener('orientationchange', () => setTimeout(fit, 250));
+  }
+</script>

@@ -1,0 +1,51 @@
+---
+// Mancha de acuarela decorativa. Posición en % del contenedor (que debe ser position: relative).
+import { blob } from '../lib/watercolor';
+
+interface Props {
+  seed?: number;
+  tone?: 1 | 2 | 3;
+  size?: string;
+  x?: string;
+  y?: string;
+  rot?: number;
+  opacity?: number;
+}
+
+const { seed = 1, tone = 1, size = '20rem', x = '50%', y = '50%', rot = 0, opacity = 1 } = Astro.props;
+const d = blob(seed);
+const d2 = blob(seed + 40, 40, 14, 8);
+---
+
+<svg
+  class={`wash tone-${tone}`}
+  viewBox="-100 -100 200 200"
+  aria-hidden="true"
+  focusable="false"
+  style={`--size:${size};left:${x};top:${y};opacity:${opacity};transform:translate(-50%,-50%) rotate(${rot}deg)`}
+>
+  <g filter="url(#wc-edge)">
+    <path class="body" d={d}></path>
+    <path class="edge" d={d}></path>
+    <path class="pool" d={d2}></path>
+  </g>
+</svg>
+
+<style>
+  .wash {
+    position: absolute;
+    width: var(--size);
+    height: var(--size);
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  .tone-1 { color: var(--wash-1); }
+  .tone-2 { color: var(--wash-2); }
+  .tone-3 { color: var(--wash-3); }
+
+  .body { fill: currentColor; fill-opacity: 0.55; }
+  /* Pigmento que se acumula en el borde, como en una acuarela real. */
+  .edge { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-opacity: 0.6; }
+  .pool { fill: currentColor; fill-opacity: 0.26; }
+</style>
