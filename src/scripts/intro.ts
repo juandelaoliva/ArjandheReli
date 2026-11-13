@@ -596,8 +596,8 @@ function setup(intro: HTMLElement) {
     // 3. La cámara avanza hacia el interior; la portada ya está ahí y se asienta
     add(flapsEl, [{ transform: 'scale(1)' }, { transform: 'scale(1.4)' }], { delay: 420, duration: 2400, easing: 'cubic-bezier(.45,0,.7,.4)' });
     add(flapsEl, [{ opacity: 1 }, { opacity: 0 }], { delay: 2120, duration: 500, easing: 'linear' });
-    if (hero) add(hero, [{ transform: 'scale(.95)' }, { transform: 'scale(1)' }], { delay: 420, duration: 2600, easing: EASE_OUT });
-    add(vignette, [{ opacity: 1 }, { opacity: 0 }], { delay: 760, duration: 2400, easing: 'ease-out' });
+    if (hero) add(hero, [{ transform: 'scale(.95)' }, { transform: 'scale(1)' }], { delay: 420, duration: 2200, easing: EASE_OUT });
+    add(vignette, [{ opacity: 1 }, { opacity: 0 }], { delay: 760, duration: 1860, easing: 'ease-out' });
   }
 
   function startIdle() {
@@ -626,6 +626,16 @@ function setup(intro: HTMLElement) {
     safeStorage(() => localStorage.setItem(SEEN_KEY, '1'));
   }
 
+  let releaseTimer: number | undefined;
+  /** Desbloquea la página mientras el sobre termina de desvanecerse (no lo oculta: eso lo hace teardown). */
+  function release() {
+    intro.style.pointerEvents = 'none';
+    root.classList.remove('intro-lock');
+    root.classList.add('intro-done');
+    themeMeta?.setAttribute('content', PAPER_COLOR);
+    safeStorage(() => localStorage.setItem(SEEN_KEY, '1'));
+  }
+
   async function open() {
     if (state !== 'closed') return;
     // La música empieza en este mismo toque: los navegadores solo permiten audio dentro de un gesto del usuario.
@@ -639,6 +649,9 @@ function setup(intro: HTMLElement) {
     buildOpenTimeline();
     anims.forEach((a) => a.play());
     state = 'opening';
+    // Las solapas ya se ven abiertas a ~1,9 s: desde ahí se puede hacer scroll y tocar la página,
+    // aunque los últimos efectos (fundido de las solapas, viñeta) terminen después.
+    releaseTimer = window.setTimeout(release, reduceMotion.matches ? 0 : 1900);
     Promise.all(anims.map((a) => a.finished)).then(() => {
       state = 'closed'; // permite que teardown() corra
       teardown();
@@ -714,7 +727,9 @@ function setup(intro: HTMLElement) {
       anims.forEach((a) => a.cancel());
       anims = [];
       state = 'closed';
+      clearTimeout(releaseTimer);
       intro.hidden = false;
+      intro.style.pointerEvents = '';
       seal.style.pointerEvents = '';
       root.classList.add('intro-lock');
       root.classList.remove('intro-done');
