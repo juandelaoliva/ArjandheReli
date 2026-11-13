@@ -19,8 +19,9 @@
  * total_people = personas que vienen en esa respuesta: 0 si no viene, 1 si viene solo, 3 si trae a dos más.
  * La pestaña «Summary» suma todo automáticamente (se crea sola la primera vez).
  *
- * Una fila por teléfono. El mismo número escrito de formas distintas («+355 69 123 4567», «069 123 4567»,
- * «00355 69 123 4567») se reconoce como el mismo y actualiza su fila: «times_sent» cuenta los envíos y «note»
+ * Una fila por teléfono. El mismo número escrito de formas distintas («+34 612 345 678», «0034612345678»,
+ * «612345678»; «+355 69 123 4567», «069 123 4567») se reconoce como el mismo y actualiza su fila, mostrando
+ * en «phone» el número tal como lo escribió la persona la ÚLTIMA vez: «times_sent» cuenta los envíos y «note»
  * guarda el historial (fecha y respuesta anterior), indicando si el reenvío llegó desde otro dispositivo.
  *
  * Seguridad:
@@ -70,7 +71,11 @@ function doPost(e) {
   if (!id || name.length < 2 || !phone || !attending) {
     return json_({ ok: false, error: 'missing_fields' });
   }
-  if (!phoneKey_(phone) || !/^'?[+()\d\s.\-]+$/.test(phone)) return json_({ ok: false, error: 'bad_phone' });
+  // Teléfono: solo dígitos, espacios, + ( ) . -, entre 7 y 15 dígitos (máximo internacional), con o sin prefijo.
+  const digits = phone.replace(/\D/g, '');
+  if (!/^'?[+()\d\s.\-]+$/.test(phone) || digits.length < 7 || digits.length > 15) {
+    return json_({ ok: false, error: 'bad_phone' });
+  }
   // Clave secreta del dispositivo (solo se guarda su hash).
   const key = clean_(data.clave, 80);
   const keyHash = key.length >= 16 ? sha256_(key) : '';
@@ -78,7 +83,9 @@ function doPost(e) {
   const yes = attending === 'Yes';
   const guests = yes ? Math.max(0, Math.min(MAX_GUESTS, parseInt(data.invitados, 10) || 0)) : 0;
   const row = [
-    phone,
+    // Se guarda EXACTAMENTE como lo escribió (el apóstrofo obliga a Sheets a tratarlo como texto:
+    // sin él, «0034612345678» se convertiría en el número 34612345678 y perdería los ceros y el +).
+    "'" + phone.replace(/^'/, ''),
     name,
     attending,
     yes ? 1 + guests : 0,

@@ -219,7 +219,11 @@ function setup(root: HTMLElement) {
   }
 
   /* ---------- Validación ---------- */
-  const isPhone = (v: string) => /^[+()\d\s.\-]+$/.test(v) && v.replace(/\D/g, '').length >= 7;
+  // Igual que en el script de Google: con o sin prefijo, entre 7 y 15 dígitos.
+  const isPhone = (v: string) => {
+    const n = v.replace(/\D/g, '').length;
+    return /^[+()\d\s.\-]+$/.test(v) && n >= 7 && n <= 15;
+  };
 
   function validate(id: StepId): { msg: string; field: HTMLElement } | null {
     if (id === 's1') {
