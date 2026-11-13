@@ -37,7 +37,7 @@ html[data-style='relieve'] .rel-decor {
 /* Marco de la portada: corona de yeso arriba y remate abajo.
    Su ancho también depende de la altura visible (svh), así el marco entero cabe en pantallas bajas. */
 html[data-style='relieve'] .hero {
-  --crown-w: min(108vw, 38rem, 46svh);
+  --crown-w: min(108vw, 38rem, 56svh);
   --crown-h: calc(var(--crown-w) * 0.334);
   padding: 0;
 }
