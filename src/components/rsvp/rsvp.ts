@@ -28,6 +28,8 @@ interface Config {
 
 const PROGRESS_KEY = 'rsvp-progreso';
 const SENT_KEY = 'rsvp-enviado';
+// Clave secreta de este dispositivo: solo quien envió una respuesta puede cambiarla después.
+const DEVICE_KEY = 'rsvp-clave';
 const MAX_ADULTS = 4;
 
 function store<T>(fn: () => T): T | null {
@@ -251,6 +253,16 @@ function setup(root: HTMLElement) {
   }
 
   /* ---------- Envío ---------- */
+  const deviceKey = () => {
+    let k = store(() => localStorage.getItem(DEVICE_KEY));
+    if (!k || k.length < 16) {
+      k = crypto.randomUUID() + crypto.randomUUID();
+      const value = k;
+      store(() => localStorage.setItem(DEVICE_KEY, value));
+    }
+    return k;
+  };
+
   function buildPayload() {
     const yes = state.attending === 'yes';
     const n = yes ? state.adults : 0;
@@ -262,6 +274,7 @@ function setup(root: HTMLElement) {
       asiste: yes ? 'si' : 'no',
       invitados: n,
       nombres_invitados: state.adultNames.slice(0, n).map((_, i) => personName(i + 1)).join(', '),
+      clave: deviceKey(),
       website: hp.value,
       enviado: new Date().toISOString(),
     };

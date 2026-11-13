@@ -14,9 +14,15 @@
  * para evitar la petición preflight de CORS, que Apps Script no sabe responder.
  *
  * Hoja en inglés. Pestaña «Responses», una fila por persona que responde:
- *   phone | name | attending | guests | guest_names | total_people | language | submitted_at | id
- * Si alguien vuelve a responder con el mismo teléfono (aunque lo escriba distinto: «+355 69…» o «069…»),
- * se sustituye su fila en lugar de añadir otra.
+ *   phone | name | attending | guests | guest_names | total_people | language | submitted_at | id | note | edit_key
+ *
+ * Seguridad:
+ *  - Cambiar una respuesta exige la misma clave secreta del dispositivo que la envió (se guarda solo su hash SHA-256
+ *    en «edit_key»). Así nadie puede sobrescribir la respuesta de otro invitado sabiendo su teléfono: si llega el mismo
+ *    teléfono con otra clave, se añade como fila nueva con una nota para revisarla a mano.
+ *  - Límite de envíos por minuto, trampa para bots (honeypot) y validación de todos los campos.
+ *  - Los textos que empiezan por = + - @ se guardan como texto (nadie puede colar fórmulas en la hoja).
+ *  - La aplicación web no permite leer la hoja: solo añadir o actualizar respuestas.
  */
 
 const SHEET_NAME = 'Responses';
@@ -24,10 +30,14 @@ const SHEET_NAME = 'Responses';
 const NOTIFY_EMAIL = '';
 
 const HEADERS = [
-  'phone', 'name', 'attending', 'guests', 'guest_names', 'total_people', 'language', 'submitted_at', 'id',
+  'phone', 'name', 'attending', 'guests', 'guest_names', 'total_people', 'language', 'submitted_at', 'id', 'note', 'edit_key',
 ];
 const COL_PHONE = HEADERS.indexOf('phone') + 1;
 const COL_ID = HEADERS.indexOf('id') + 1;
+const COL_KEY = HEADERS.indexOf('edit_key') + 1;
+const LANGS = ['sq', 'en', 'de'];
+// Envíos aceptados por minuto entre todos los invitados (de sobra para una boda; frena a los bots).
+const MAX_PER_MINUTE = 30;
 const MAX_GUESTS = 4;
 
 function doPost(e) {
@@ -39,7 +49,8 @@ function doPost(e) {
   }
 
   // Honeypot: si viene relleno es un bot. Se responde «ok» para que no insista.
-  if (clean_(data.website)) return json_({ ok: true });
+  if (!data || typeof data !== 'object' || clean_(data.website)) return json_({ ok: true });
+  if (!underRateLimit_()) return json_({ ok: false, error: 'busy' });
 
   const id = clean_(data.id, 64);
   const name = clean_(data.nombre, 120);
@@ -47,9 +58,13 @@ function doPost(e) {
   const phone = clean_(data.telefono || data.contacto, 40);
   const raw = clean_(data.asiste, 3).toLowerCase();
   const attending = raw === 'si' || raw === 'yes' ? 'Yes' : raw === 'no' ? 'No' : '';
-  if (!id || !name || !phone || !attending) {
+  if (!id || name.length < 2 || !phone || !attending) {
     return json_({ ok: false, error: 'missing_fields' });
   }
+  if (!phoneKey_(phone) || !/^'?[+()\d\s.\-]+$/.test(phone)) return json_({ ok: false, error: 'bad_phone' });
+  // Clave secreta del dispositivo (solo se guarda su hash).
+  const key = clean_(data.clave, 80);
+  const keyHash = key.length >= 16 ? sha256_(key) : '';
 
   const yes = attending === 'Yes';
   const guests = yes ? Math.max(0, Math.min(MAX_GUESTS, parseInt(data.invitados, 10) || 0)) : 0;
@@ -60,9 +75,11 @@ function doPost(e) {
     guests,
     yes ? clean_(data.nombres_invitados, 500) : '',
     yes ? 1 + guests : 0,
-    clean_(data.idioma, 5),
+    LANGS.indexOf(clean_(data.idioma, 5)) >= 0 ? clean_(data.idioma, 5) : '',
     new Date(),
     id,
+    '',
+    keyHash,
   ];
 
   let updated = false;
@@ -76,15 +93,19 @@ function doPost(e) {
       const dup = sheet.getRange(2, COL_ID, last - 1, 1).createTextFinder(id).matchEntireCell(true).findNext();
       if (dup) return json_({ ok: true, duplicate: true });
 
-      // Mismo teléfono = la persona corrige su respuesta: se sustituye su fila.
-      const key = phoneKey_(phone);
+      // Mismo teléfono Y misma clave del dispositivo = la persona corrige su respuesta: se sustituye su fila.
+      // Mismo teléfono con otra clave = posible suplantación o un segundo móvil: fila nueva con una nota.
+      const pkey = phoneKey_(phone);
       const phones = sheet.getRange(2, COL_PHONE, last - 1, 1).getDisplayValues();
+      const keys = sheet.getRange(2, COL_KEY, last - 1, 1).getValues();
       for (let i = 0; i < phones.length; i++) {
-        if (key && phoneKey_(phones[i][0]) === key) {
+        if (phoneKey_(phones[i][0]) !== pkey) continue;
+        if (keyHash && keys[i][0] === keyHash) {
           sheet.getRange(i + 2, 1, 1, HEADERS.length).setValues([row]);
           updated = true;
           break;
         }
+        row[HEADERS.indexOf('note')] = 'Same phone as row ' + (i + 2) + ' (sent from another device): check';
       }
     }
     if (!updated) sheet.appendRow(row);
@@ -113,6 +134,22 @@ function getSheet_() {
     sheet.setFrozenRows(1);
   }
   return sheet;
+}
+
+/** Límite global de envíos por minuto (caché del script, sin datos personales). */
+function underRateLimit_() {
+  const cache = CacheService.getScriptCache();
+  const bucket = 'rl:' + Math.floor(Date.now() / 60000);
+  const n = Number(cache.get(bucket) || 0) + 1;
+  cache.put(bucket, String(n), 120);
+  return n <= MAX_PER_MINUTE;
+}
+
+/** Hash SHA-256 en hexadecimal. */
+function sha256_(text) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text, Utilities.Charset.UTF_8)
+    .map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); })
+    .join('');
 }
 
 /** Clave para comparar teléfonos: los últimos 9 dígitos («+355 69 123 4567» y «069 123 4567» coinciden). */
