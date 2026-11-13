@@ -26,10 +26,10 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          # Sin dominio propio: https://usuario.github.io/nombre-repo/
-          # Con dominio propio: SITE_URL=https://dominio y BASE_PATH=/
-          SITE_URL: https://${{ github.repository_owner }}.github.io
-          BASE_PATH: /${{ github.event.repository.name }}/
+          # Con dominio propio (variable del repositorio CUSTOM_DOMAIN, p. ej. «ejemplo.com»): https://ejemplo.com/
+          # Sin él: https://usuario.github.io/nombre-repo/
+          SITE_URL: ${{ vars.CUSTOM_DOMAIN && format('https://{0}', vars.CUSTOM_DOMAIN) || format('https://{0}.github.io', github.repository_owner) }}
+          BASE_PATH: ${{ vars.CUSTOM_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
           PUBLIC_RSVP_ENDPOINT: ${{ vars.PUBLIC_RSVP_ENDPOINT }}
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
