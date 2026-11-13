@@ -90,12 +90,6 @@ const d = dateParts(lang);
     padding: 3.25rem 1rem 1rem;
   }
 
-  /* Con JS la portada mide EXACTAMENTE la parte visible de la pantalla (svh = altura con las barras del navegador
-     desplegadas) y el script ajusta el contenido a ese alto. Sin JS queda el comportamiento de antes. */
-  :global(.js) .hero {
-    height: 100svh;
-    min-height: 0;
-  }
 
   .card {
     position: relative;
@@ -275,44 +269,3 @@ const d = dateParts(lang);
     visibility: hidden;
   }
 </style>
-
-<script>
-  // Ajusta el contenido de la portada a la altura disponible entre las dos coronas: si no cabe, lo reduce
-  // (nunca por debajo de MIN, para que el texto siga siendo legible; en ese caso la portada crece lo justo).
-  const MIN = 0.66;
-  const hero = document.querySelector<HTMLElement>('[data-hero]');
-  const card = hero?.querySelector<HTMLElement>('.card');
-  const content = hero?.querySelector<HTMLElement>('.content');
-
-  function fit() {
-    if (!hero || !card || !content) return;
-    content.style.transform = '';
-    hero.style.height = '';
-    // El contenido se coloca arriba y se centra a mano: si no cabe, el navegador no lo centra solo.
-    card.style.placeItems = 'start center';
-    content.style.transformOrigin = 'top center';
-    const cs = getComputedStyle(card);
-    const avail = card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    const natural = content.offsetHeight;
-    if (!natural || avail <= 0) return;
-    let k = Math.min(1, avail / natural);
-    if (k < MIN) {
-      // No cabe ni al mínimo: la portada crece lo justo en lugar de dejar el texto ilegible.
-      k = MIN;
-      hero.style.height = `${Math.ceil(hero.getBoundingClientRect().height + natural * MIN - avail)}px`;
-    }
-    const space = Math.max(0, (card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) - natural * k);
-    content.style.transform = `translateY(${(space / 2).toFixed(1)}px) scale(${k.toFixed(4)})`;
-  }
-
-  if (hero) {
-    fit();
-    document.fonts?.ready.then(fit);
-    let t = 0;
-    new ResizeObserver(() => {
-      cancelAnimationFrame(t);
-      t = requestAnimationFrame(fit);
-    }).observe(document.documentElement);
-    addEventListener('orientationchange', () => setTimeout(fit, 250));
-  }
-</script>

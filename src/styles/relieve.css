@@ -34,10 +34,10 @@ html[data-style='relieve'] .rel-decor {
   filter: saturate(0.55) sepia(0.12) brightness(1.02);
 }
 
-/* Marco de la portada: corona de yeso arriba y remate abajo.
-   Su ancho también depende de la altura visible (svh), así el marco entero cabe en pantallas bajas. */
+/* Marco de la portada: corona de yeso arriba y remate abajo, de lado a lado de la pantalla.
+   La portada mide lo que necesite su contenido (en móviles bajos se hace scroll). */
 html[data-style='relieve'] .hero {
-  --crown-w: min(108vw, 38rem, 56svh);
+  --crown-w: min(108vw, 38rem);
   --crown-h: calc(var(--crown-w) * 0.334);
   padding: 0;
 }
@@ -103,7 +103,6 @@ html[data-style='relieve'] .hero .rel-i {
 html[data-style='relieve'] .hero .card {
   width: min(100%, 30rem);
   min-height: 100svh;
-  height: 100%;
   padding: calc(2.2rem + var(--crown-h) * 0.82) 1.25rem calc(1.4rem + var(--crown-h));
 }
 
@@ -186,12 +185,3 @@ html[data-style='relieve'] .hero .scroll-hint {
   display: none;
 }
 
-/* Pantallas bajas (móviles con la barra del navegador): se aprietan los espacios de la portada para que
-   quepa entre las dos coronas sin tener que reducir demasiado las letras. */
-@media (max-height: 760px) {
-  html[data-style='relieve'] .hero .names { margin: 0.2rem 0 0.4rem; }
-  html[data-style='relieve'] .hero .rel-request { margin-bottom: 0.5rem; }
-  html[data-style='relieve'] .hero .rel-decor.divider { margin: 0.1rem auto 0; width: min(11rem, 55%); }
-  html[data-style='relieve'] .hero .place { font-size: 1.1rem; }
-  html[data-style='relieve'] .hero .date { padding: 0.2rem 0 0.35rem; }
-}

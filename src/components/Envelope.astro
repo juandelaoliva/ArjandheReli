@@ -115,6 +115,8 @@ const decos = JSON.stringify({
 </div>
 
 <!-- Controles de prueba: selector de color del sobre. Quitar este bloque al elegir color definitivo. -->
+{
+  import.meta.env.DEV && (
 <div class="proto-controls" data-proto>
   <button class="proto-toggle" type="button" aria-expanded="false" aria-controls="proto-panel" aria-label="Color del sobre (prueba)">
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
@@ -159,6 +161,8 @@ const decos = JSON.stringify({
     <button class="close" type="button" disabled>Cerrar el sobre</button>
   </div>
 </div>
+  )
+}
 
 <script>
   import '../scripts/intro';
