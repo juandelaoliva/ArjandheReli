@@ -277,6 +277,14 @@ const config = {
     font-size: 1rem; /* ≥16 px: Safari en iPhone no hace zoom al enfocar */
   }
 
+  /* Campo en edición: borde dorado (el rojo queda solo para los errores). */
+  .rsvp input:focus,
+  .rsvp input:focus-visible {
+    outline: none;
+    border-color: var(--rsvp-accent);
+    box-shadow: 0 0 0 1px var(--rsvp-accent);
+  }
+
   .rsvp input[aria-invalid='true'] {
     border-color: var(--lacre);
     box-shadow: 0 0 0 1px var(--lacre);
