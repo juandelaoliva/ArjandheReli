@@ -17,12 +17,17 @@ interface Props {
 const { lang } = Astro.props;
 const t = rsvpText[lang];
 
+const RSVP_ENDPOINT =
+  'https://script.google.com/macros/s/AKfycbyvXfQku9LfrmHTC-K0m9cTGKgbygfbQcN-ifKj_sV7JxL-D-b7-ezlso6gLgF5vmov/exec';
+
 const config = {
   t,
   lang,
   locale: intlLocale[lang],
   timeZone: boda.zonaHoraria,
-  endpoint: import.meta.env.PUBLIC_RSVP_ENDPOINT ?? '',
+  // URL del Apps Script que escribe en la hoja. No es secreta (se ve en la web publicada); la variable
+  // PUBLIC_RSVP_ENDPOINT, si existe, tiene prioridad.
+  endpoint: import.meta.env.PUBLIC_RSVP_ENDPOINT || RSVP_ENDPOINT,
   dayMonth: formatDate(boda.fecha, lang, { day: 'numeric', month: 'long' }),
   // Fechas del navegador: algunos navegadores no traen datos de albanés en Intl y formatearían en SU idioma (español).
   // Por eso los nombres de los meses llegan ya calculados desde el servidor.
