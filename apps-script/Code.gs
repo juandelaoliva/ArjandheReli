@@ -14,12 +14,15 @@
  * para evitar la petición preflight de CORS, que Apps Script no sabe responder.
  *
  * Hoja en inglés. Pestaña «Responses», una fila por persona que responde:
- *   phone | name | attending | guests | guest_names | total_people | language | submitted_at | id | note | edit_key
+ *   phone | name | attending | guests | guest_names | total_people | language | submitted_at | id | note | edit_key | times_sent
+ *
+ * Una fila por teléfono. El mismo número escrito de formas distintas («+355 69 123 4567», «069 123 4567»,
+ * «00355 69 123 4567») se reconoce como el mismo y actualiza su fila: «times_sent» cuenta los envíos y «note»
+ * guarda el historial (fecha y respuesta anterior), indicando si el reenvío llegó desde otro dispositivo.
  *
  * Seguridad:
- *  - Cambiar una respuesta exige la misma clave secreta del dispositivo que la envió (se guarda solo su hash SHA-256
- *    en «edit_key»). Así nadie puede sobrescribir la respuesta de otro invitado sabiendo su teléfono: si llega el mismo
- *    teléfono con otra clave, se añade como fila nueva con una nota para revisarla a mano.
+ *  - Cada dispositivo envía una clave secreta (se guarda solo su hash SHA-256 en «edit_key»). Un reenvío desde otro
+ *    dispositivo se marca en la nota con la respuesta anterior, para poder detectar y deshacer una suplantación.
  *  - Límite de envíos por minuto, trampa para bots (honeypot) y validación de todos los campos.
  *  - Los textos que empiezan por = + - @ se guardan como texto (nadie puede colar fórmulas en la hoja).
  *  - La aplicación web no permite leer la hoja: solo añadir o actualizar respuestas.
@@ -31,10 +34,12 @@ const NOTIFY_EMAIL = '';
 
 const HEADERS = [
   'phone', 'name', 'attending', 'guests', 'guest_names', 'total_people', 'language', 'submitted_at', 'id', 'note', 'edit_key',
+  'times_sent',
 ];
+const COL = {};
+HEADERS.forEach(function (h, i) { COL[h] = i; });
 const COL_PHONE = HEADERS.indexOf('phone') + 1;
 const COL_ID = HEADERS.indexOf('id') + 1;
-const COL_KEY = HEADERS.indexOf('edit_key') + 1;
 const LANGS = ['sq', 'en', 'de'];
 // Envíos aceptados por minuto entre todos los invitados (de sobra para una boda; frena a los bots).
 const MAX_PER_MINUTE = 30;
@@ -80,6 +85,7 @@ function doPost(e) {
     id,
     '',
     keyHash,
+    1,
   ];
 
   let updated = false;
@@ -93,19 +99,25 @@ function doPost(e) {
       const dup = sheet.getRange(2, COL_ID, last - 1, 1).createTextFinder(id).matchEntireCell(true).findNext();
       if (dup) return json_({ ok: true, duplicate: true });
 
-      // Mismo teléfono Y misma clave del dispositivo = la persona corrige su respuesta: se sustituye su fila.
-      // Mismo teléfono con otra clave = posible suplantación o un segundo móvil: fila nueva con una nota.
+      // Mismo teléfono (aunque escrito distinto) = la misma persona: se actualiza SU fila, nunca se duplica.
       const pkey = phoneKey_(phone);
       const phones = sheet.getRange(2, COL_PHONE, last - 1, 1).getDisplayValues();
-      const keys = sheet.getRange(2, COL_KEY, last - 1, 1).getValues();
       for (let i = 0; i < phones.length; i++) {
         if (phoneKey_(phones[i][0]) !== pkey) continue;
-        if (keyHash && keys[i][0] === keyHash) {
-          sheet.getRange(i + 2, 1, 1, HEADERS.length).setValues([row]);
-          updated = true;
-          break;
-        }
-        row[HEADERS.indexOf('note')] = 'Same phone as row ' + (i + 2) + ' (sent from another device): check';
+        const prev = sheet.getRange(i + 2, 1, 1, HEADERS.length).getValues()[0];
+        const fromOther = !keyHash || (prev[COL.edit_key] && prev[COL.edit_key] !== keyHash);
+        const before = prev[COL.attending] === 'Yes'
+          ? 'Yes, ' + (prev[COL.guests] || 0) + ' guest(s)' + (prev[COL.guest_names] ? ' (' + prev[COL.guest_names] + ')' : '')
+          : String(prev[COL.attending] || '?');
+        const entry = Utilities.formatDate(new Date(), 'Europe/Tirane', 'yyyy-MM-dd HH:mm') + ' resent'
+          + (fromOther ? ' FROM ANOTHER DEVICE' : '') + ' (was: ' + before + ', name: ' + prev[COL.name] + ')';
+        row[COL.note] = String(prev[COL.note] ? prev[COL.note] + ' | ' + entry : entry).slice(-1500);
+        row[COL.times_sent] = (Number(prev[COL.times_sent]) || 1) + 1;
+        // Se conserva la clave del primer dispositivo (el del dueño original).
+        row[COL.edit_key] = prev[COL.edit_key] || keyHash;
+        sheet.getRange(i + 2, 1, 1, HEADERS.length).setValues([row]);
+        updated = true;
+        break;
       }
     }
     if (!updated) sheet.appendRow(row);
