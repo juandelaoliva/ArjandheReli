@@ -258,13 +258,10 @@ function setup(root: HTMLElement) {
       id: crypto.randomUUID() as string,
       idioma: cfg.lang,
       nombre: state.name.trim(),
-      contacto: state.contacto.trim(),
+      telefono: state.contacto.trim(),
       asiste: yes ? 'si' : 'no',
-      adultos_extra: n,
-      nombres_adultos: state.adultNames.slice(0, n).map((_, i) => personName(i + 1)).join(', '),
-      // Ya no se preguntan menús ni alergias; se envían vacíos para no cambiar el formato que espera el script de Google.
-      menus: '',
-      alergias: '',
+      invitados: n,
+      nombres_invitados: state.adultNames.slice(0, n).map((_, i) => personName(i + 1)).join(', '),
       website: hp.value,
       enviado: new Date().toISOString(),
     };

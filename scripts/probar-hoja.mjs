@@ -10,12 +10,10 @@ const datos = {
   id: crypto.randomUUID(),
   idioma: 'sq',
   nombre: 'PRUEBA Ana Ejemplo',
-  contacto: 'prueba@example.com',
+  telefono: '+355 69 000 1234',
   asiste: 'si',
-  adultos_extra: 1,
-  nombres_adultos: 'Luis Ejemplo',
-  menus: 'Ana: general; Luis: vegetariano',
-  alergias: 'Ana: ninguna; Luis: frutos secos',
+  invitados: 1,
+  nombres_invitados: 'Luis Ejemplo',
   website: '',
 };
 
