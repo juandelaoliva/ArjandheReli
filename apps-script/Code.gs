@@ -14,7 +14,10 @@
  * para evitar la petición preflight de CORS, que Apps Script no sabe responder.
  *
  * Hoja en inglés. Pestaña «Responses», una fila por persona que responde:
- *   phone | name | attending | guests | guest_names | total_people | language | submitted_at | id | note | edit_key | times_sent
+ *   phone | name | attending | total_people | guest_names | language | submitted_at | id | note | edit_key | times_sent
+ *
+ * total_people = personas que vienen en esa respuesta: 0 si no viene, 1 si viene solo, 3 si trae a dos más.
+ * La pestaña «Summary» suma todo automáticamente (se crea sola la primera vez).
  *
  * Una fila por teléfono. El mismo número escrito de formas distintas («+355 69 123 4567», «069 123 4567»,
  * «00355 69 123 4567») se reconoce como el mismo y actualiza su fila: «times_sent» cuenta los envíos y «note»
@@ -29,11 +32,12 @@
  */
 
 const SHEET_NAME = 'Responses';
+const SUMMARY_NAME = 'Summary';
 // Correo (o varios separados por comas) que recibe un aviso por cada respuesta. Vacío = sin avisos.
 const NOTIFY_EMAIL = '';
 
 const HEADERS = [
-  'phone', 'name', 'attending', 'guests', 'guest_names', 'total_people', 'language', 'submitted_at', 'id', 'note', 'edit_key',
+  'phone', 'name', 'attending', 'total_people', 'guest_names', 'language', 'submitted_at', 'id', 'note', 'edit_key',
   'times_sent',
 ];
 const COL = {};
@@ -77,9 +81,8 @@ function doPost(e) {
     phone,
     name,
     attending,
-    guests,
-    yes ? clean_(data.nombres_invitados, 500) : '',
     yes ? 1 + guests : 0,
+    yes ? clean_(data.nombres_invitados, 500) : '',
     LANGS.indexOf(clean_(data.idioma, 5)) >= 0 ? clean_(data.idioma, 5) : '',
     new Date(),
     id,
@@ -107,7 +110,8 @@ function doPost(e) {
         const prev = sheet.getRange(i + 2, 1, 1, HEADERS.length).getValues()[0];
         const fromOther = !keyHash || (prev[COL.edit_key] && prev[COL.edit_key] !== keyHash);
         const before = prev[COL.attending] === 'Yes'
-          ? 'Yes, ' + (prev[COL.guests] || 0) + ' guest(s)' + (prev[COL.guest_names] ? ' (' + prev[COL.guest_names] + ')' : '')
+          ? 'Yes, ' + (Number(prev[COL.total_people]) === 1 ? '1 person' : (prev[COL.total_people] || 1) + ' people')
+            + (prev[COL.guest_names] ? ' (+ ' + prev[COL.guest_names] + ')' : '')
           : String(prev[COL.attending] || '?');
         const entry = Utilities.formatDate(new Date(), 'Europe/Tirane', 'yyyy-MM-dd HH:mm') + ' resent'
           + (fromOther ? ' FROM ANOTHER DEVICE' : '') + ' (was: ' + before + ', name: ' + prev[COL.name] + ')';
@@ -134,18 +138,54 @@ function doGet() {
   return json_({ ok: true, service: 'rsvp' });
 }
 
-/** Pestaña «Responses» con su fila de cabeceras (se crea o se repara si falta o es de una versión anterior). */
+/** Pestaña «Responses» con su cabecera. Si viene de una versión anterior, recoloca las filas por nombre de columna. */
 function getSheet_() {
   const book = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = book.getSheetByName(SHEET_NAME) || book.insertSheet(SHEET_NAME);
-  const first = sheet.getLastRow() > 0
-    ? sheet.getRange(1, 1, 1, HEADERS.length).getDisplayValues()[0].join('|')
-    : '';
-  if (first !== HEADERS.join('|')) {
+  const lastCol = Math.max(sheet.getLastColumn(), HEADERS.length);
+  const current = sheet.getLastRow() > 0 ? sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0] : [];
+  if (current.slice(0, HEADERS.length).join('|') !== HEADERS.join('|')) {
+    const old = current.map(function (h) { return String(h).trim(); });
+    const n = sheet.getLastRow() - 1;
+    let data = [];
+    if (n > 0 && old.indexOf('phone') >= 0) {
+      const values = sheet.getRange(2, 1, n, lastCol).getValues();
+      data = values.map(function (r) {
+        const get = function (h) { const i = old.indexOf(h); return i >= 0 ? r[i] : ''; };
+        return HEADERS.map(function (h) {
+          if (h === 'total_people') {
+            const t = get('total_people');
+            if (t !== '') return t;
+            return get('attending') === 'Yes' ? 1 + (Number(get('guests')) || 0) : 0;
+          }
+          return get(h);
+        });
+      });
+    }
+    sheet.clear();
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
+    if (data.length) sheet.getRange(2, 1, data.length, HEADERS.length).setValues(data);
     sheet.setFrozenRows(1);
   }
+  ensureSummary_(book);
   return sheet;
+}
+
+/** Pestaña «Summary» con los totales (fórmulas: se actualizan solas). */
+function ensureSummary_(book) {
+  if (book.getSheetByName(SUMMARY_NAME)) return;
+  const sum = book.insertSheet(SUMMARY_NAME);
+  const R = "'" + SHEET_NAME + "'!";
+  const col = function (h) { return String.fromCharCode(65 + HEADERS.indexOf(h)); };
+  sum.getRange(1, 1, 5, 2).setValues([
+    ['Total people coming', '=SUM(' + R + col('total_people') + '2:' + col('total_people') + ')'],
+    ['Replies: attending', '=COUNTIF(' + R + col('attending') + '2:' + col('attending') + ',"Yes")'],
+    ['Replies: not attending', '=COUNTIF(' + R + col('attending') + '2:' + col('attending') + ',"No")'],
+    ['Replies in total', '=COUNTA(' + R + col('phone') + '2:' + col('phone') + ')'],
+    ['Replies sent more than once', '=COUNTIF(' + R + col('times_sent') + '2:' + col('times_sent') + ',">1")'],
+  ]);
+  sum.getRange(1, 1, 5, 1).setFontWeight('bold');
+  sum.setColumnWidth(1, 240);
 }
 
 /** Límite global de envíos por minuto (caché del script, sin datos personales). */
@@ -179,7 +219,7 @@ function clean_(value, max) {
 
 function notify_(row, updated) {
   try {
-    const [phone, name, attending, guests, guestNames, total, language] = row;
+    const [phone, name, attending, total, guestNames, language] = row;
     const comes = attending === 'Yes';
     MailApp.sendEmail({
       to: NOTIFY_EMAIL,
@@ -189,8 +229,7 @@ function notify_(row, updated) {
         'Phone: ' + String(phone).replace(/^'/, ''),
         'Language: ' + language,
         'Attending: ' + attending,
-        comes ? 'Guests: ' + guests + (guestNames ? ' (' + guestNames + ')' : '') : '',
-        comes ? 'Total people: ' + total : '',
+        comes ? 'Total people: ' + total + (guestNames ? ' (+ ' + guestNames + ')' : '') : '',
       ].filter(Boolean).join('\n'),
     });
   } catch (err) {
