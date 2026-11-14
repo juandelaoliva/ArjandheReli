@@ -68,8 +68,13 @@ const families = t.familiesLine.replace('{a}', boda.novios.apellidoEl).replace('
     z-index: 1;
     max-width: var(--measure);
     margin: 2.5rem auto 0;
-    padding: 1.75rem 0 0;
-    border-top: 1px solid var(--gold-soft);
+    padding: 0.5rem 0 0;
+  }
+
+  /* Separador de relieve ampliado: enmarca el pie en lugar de la línea. */
+  .signoff :global(.rel-decor.divider) {
+    width: min(24rem, 100%) !important;
+    margin: 0 auto 0.75rem !important;
   }
 
   .love {
